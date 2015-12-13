@@ -1,0 +1,80 @@
+{
+  "tables": [
+    {
+      "name": "company",
+      "columns": [
+        {"name": "name", "type": "string"}
+      ]
+    },
+    {
+      "name": "country",
+      "columns": [
+        {"name": "name", "type": "string"}
+      ]
+    },
+    {
+      "name": "planet",
+      "columns": [
+        {"name": "name", "type": "string"}
+      ]
+    },
+    {
+      "name": "person",
+      "columns": [
+        {"name": "name", "type": "string"},
+        {"name": "age", "type": "integer"}
+      ]
+    },
+    {
+      "name": "spaceship",
+      "columns": [
+        {"name": "name", "type": "string"},
+        {"name": "model", "type": "string"}
+      ]
+    },
+    {
+      "name": "satellite",
+      "columns": [
+        {"name": "name", "type": "string"}
+      ]
+    },
+    {
+      "name": "sensor",
+      "columns": [
+        {"name": "name", "type": "string"},
+        {"name": "type", "type": "string"}
+      ]
+    },
+    {
+      "name": "sensorReading",
+      "columns": [
+        {"name": "tstamp", "type": "long_timestamp", "propertyName": "timestamp"},
+        {"name": "dt", "type": "long_date", "propertyName": "date"},
+        {"name": "value", "type": "double"}
+      ]
+    },
+    {
+      "name": "fliesTo",
+      "columns":[
+        {"name": "trips", "type": "integer"}
+      ]
+    },
+    {
+      "name": "orbits",
+      "columns":[
+        {"name": "launched", "type": "integer"}
+      ]
+    }
+    ],
+  "relationships": [
+    {"outTable": "company", "inTable": "country", "edgeLabel": "baseIn"},
+    {"outTable": "person", "inTable": "company", "edgeLabel": "worksFor"},
+    {"outTable": "person", "inTable": "planets", "edgeLabel": "travelledTo"},
+    {"outTable": "company", "inTable": "spaceship", "edgeLabel": "owns"},
+    {"outTable": "person", "inTable": "spaceship", "edgeLabel": "pilots"},
+    {"outTable": "sensor", "inTable": "sensorReading", "edgeLabel": "hasReading", "fkTable": "sensorReading"},
+    {"outTable": "person", "inTable": "planet", "edgeLabel": "fliesTo"},
+    {"outTable": "satellite", "inTable": "planet", "edgeLabel": "orbits"},
+    {"outTable": "person", "inTable": "person", "edgeLabel": "friendsWith"}
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "tables": [
+    {
+      "name": "customer",
+      "columns": [
+        {"name": "name", "type": "string"},
+        {"name": "title", "type": "string"}
+      ]
+    },
+    {
+      "name": "country",
+      "columns": [
+        {"name": "name", "type": "string"}
+      ]
+    },
+    {
+      "name": "country",
+      "columns": [
+        {"name": "name", "type": "string"}
+      ]
+    },
+    {
+      "name": "region",
+      "columns": [
+        {"name": "name", "type": "string"}
+      ]
+    },
+    {
+      "name": "stuff",
+      "columns": [
+        {"name": "shipCity", "type": "string"}
+      ]
+    },
+    {
+      "name": "livesInCountryAssocs",
+      "columns": [
+      ]
+    },
+    {
+      "name": "product",
+      "columns": [
+        {"name": "productName", "propertyName": "name", "type": "string"},
+        {"name": "unitsInStock", "type": "integer"},
+        {"name": "unitsInOrder", "type": "integer"},
+        {"name": "unitPrice", "type": "double"},
+        {"name": "discontinued", "type": "boolean"},
+        {"name": "reorderLevel", "type": "integer"}
+      ]
+    },
+    {
+      "name": "category",
+      "columns": [
+        {"name": "name", "type": "string"},
+        {"name": "description", "type": "string"}
+      ]
+    },
+    {
+      "name": "livesInCountry",
+      "columns": [
+        {"name": "foo", "type": "string"}
+      ]
+    }
+  ],
+  "relationships": [
+    {"outTable": "customer", "inTable": "country", "edgeLabel": "livesInCountry", "manyToMany": "livesInCountry"},
+    {"outTable": "customer", "inTable": "region", "edgeLabel": "livesInRegion"},
+    {"outTable": "stuff", "inTable": "customer", "edgeLabel": "ordered"}
+  ]
+}
