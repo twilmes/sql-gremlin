@@ -21,7 +21,7 @@ You can get started with SQL-Gremlin by building and installing it in your local
 
 [source]
 ----
-mvn clean install
+mvn clean install -DskipTests
 ----
 
 Gremlin Shell Plugin
