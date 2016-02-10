@@ -25,7 +25,7 @@
 
     <groupId>org.twilmes</groupId>
     <artifactId>sql-gremlin</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
     <developers>
         <developer>
             <name>Ted Wilmes</name>
@@ -36,7 +36,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>4.12</junit.version>
-        <tinkerpop.version>3.1.0-incubating</tinkerpop.version>
+        <tinkerpop.version>3.1.1-incubating</tinkerpop.version>
         <calcite.version>1.5.0</calcite.version>
     </properties>
 
