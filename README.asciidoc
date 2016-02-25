@@ -4,7 +4,7 @@ The SQL-Gremlin compiler turns your SQL queries into Gremlin traversals and runs
 
 Motivation
 ----------
-Many projects face the inevitable reporting/business intelligence requirement. This has motivated the creation of the SQL-Gremlin compiler.  A JDBC driver building upon the excellent Calcite Avactica framework will be released shortly.  This will enable graph connectivity with a large number of off the shelf reporting solutions that support ANSI SQL via JDBC.
+Many projects face the inevitable reporting/business intelligence requirement. This has motivated the creation of the SQL-Gremlin compiler.  A JDBC driver building upon the excellent http://calcite.apache.org/docs/avatica_overview.html[Apache Calcite Avatica] framework will be released shortly.  This will enable graph connectivity with a large number of off the shelf reporting solutions that support ANSI SQL via JDBC.
 
 Quick Start
 -----------
