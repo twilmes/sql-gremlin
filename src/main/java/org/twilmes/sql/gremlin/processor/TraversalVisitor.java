@@ -25,6 +25,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableJoin;
 import org.apache.calcite.rel.RelNode;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.twilmes.sql.gremlin.schema.SchemaConfig;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,6 +39,7 @@ public class TraversalVisitor implements RelVisitor {
 
     private final Map<GremlinToEnumerableConverter, List<RelNode>> scanMap;
     private final Map<EnumerableJoin, Map<String, GremlinToEnumerableConverter>> fieldMap;
+    private final SchemaConfig schemaConfig;  // may use to check if join is valid
     private Integer id = 0;
     private Map<GremlinToEnumerableConverter, String> tableIdMap = new HashMap<>();
     private Map<String, GremlinToEnumerableConverter> tableIdConverterMap = new HashMap<>();
@@ -50,9 +52,11 @@ public class TraversalVisitor implements RelVisitor {
 
     public TraversalVisitor(GraphTraversalSource traversalSource,
                             Map<GremlinToEnumerableConverter, List<RelNode>> scanMap,
-                            Map<EnumerableJoin, Map<String, GremlinToEnumerableConverter>> fieldMap) {
+                            Map<EnumerableJoin, Map<String, GremlinToEnumerableConverter>> fieldMap,
+                            SchemaConfig schemaConfig) {
         this.scanMap = scanMap;
         this.fieldMap = fieldMap;
+        this.schemaConfig = schemaConfig;
     }
 
     public List<Pair<String, String>> getJoinPairs() { return joinPairs; }
@@ -71,6 +75,9 @@ public class TraversalVisitor implements RelVisitor {
         RelNode left = join.getLeft();
         RelNode right = join.getRight();
 
+        // TODO: should we check schema to see if the join is valid?
+        // found some cases the join happens to two tables that has no relationship
+
         final Integer leftKeyId = join.getLeftKeys().get(0);
         final Integer rightKeyId = join.getRightKeys().get(0);
 
@@ -82,7 +89,25 @@ public class TraversalVisitor implements RelVisitor {
         final String rightAliasedColumn = rightJoinFields.get(rightKeyId);
 
         if(!(left instanceof GremlinToEnumerableConverter)) {
-            left = fieldMap.get(left).get(leftAliasedColumn);
+            if (fieldMap.get(left) != null && fieldMap.get(left).containsKey(leftAliasedColumn)) {
+                left = fieldMap.get(left).get(leftAliasedColumn);
+            } else {
+                Map<String, GremlinToEnumerableConverter> leftMap = fieldMap.get(left);
+                if (leftMap == null) {
+                    for(EnumerableJoin ej : fieldMap.keySet()) {
+                        if (ej.getLeft().equals(left)) {
+                            left = fieldMap.get(ej).get(leftAliasedColumn);
+                            List<RelNode> scan = scanMap.get(left);
+                            GraphTraversal leftTraversal = TraversalBuilder.toTraversal(scan);
+                            traversals.add(leftTraversal);
+                            tableTraversalMap.put(getTableId((GremlinToEnumerableConverter) left), leftTraversal);
+                            break;
+                        }
+                    }
+                } else {
+                    left = leftMap.get(leftAliasedColumn);
+                }
+            }
         } else {
             List<RelNode> scan = scanMap.get(left);
             GraphTraversal leftTraversal = TraversalBuilder.toTraversal(scan);
@@ -90,7 +115,13 @@ public class TraversalVisitor implements RelVisitor {
             tableTraversalMap.put(getTableId((GremlinToEnumerableConverter) left), leftTraversal);
         }
         if(!(right instanceof GremlinToEnumerableConverter)) {
-            right = fieldMap.get(join).get(rightAliasedColumn);
+            if (fieldMap.get(join) != null && fieldMap.get(join).containsKey(rightAliasedColumn)) {
+                right = fieldMap.get(join).get(rightAliasedColumn);
+                List<RelNode> scan = scanMap.get(right);
+                GraphTraversal rightTraversal = TraversalBuilder.toTraversal(scan);
+                traversals.add(rightTraversal);
+                tableTraversalMap.put(getTableId((GremlinToEnumerableConverter) right), rightTraversal);
+            }
         } else {
             List<RelNode> scan = scanMap.get(right);
             GraphTraversal rightTraversal = TraversalBuilder.toTraversal(scan);

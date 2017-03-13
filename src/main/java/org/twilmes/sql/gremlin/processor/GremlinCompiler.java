@@ -121,7 +121,7 @@ public class GremlinCompiler {
             final FieldMapVisitor fieldMapper = new FieldMapVisitor();
             new RelWalker(root, fieldMapper);
             final TraversalVisitor traversalVisitor = new TraversalVisitor(graph.traversal(),
-                    scanMap, fieldMapper.getFieldMap());
+                    scanMap, fieldMapper.getFieldMap(), schemaConfig);
             new RelWalker(root, traversalVisitor);
 
             traversal = TraversalBuilder.buildMatch(graph.traversal(), traversalVisitor.getTableTraversalMap(),

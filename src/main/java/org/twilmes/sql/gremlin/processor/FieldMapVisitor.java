@@ -19,6 +19,7 @@
 
 package org.twilmes.sql.gremlin.processor;
 
+import org.apache.calcite.adapter.enumerable.EnumerableCalc;
 import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
 import org.apache.calcite.adapter.enumerable.EnumerableJoin;
 import org.apache.calcite.rel.RelNode;
@@ -95,6 +96,20 @@ public class FieldMapVisitor implements RelVisitor {
             List<String> fieldNames = join.getRowType().getFieldNames();
             final String chosenField = fieldNames.get(fieldIndex);
             return fieldMap.get(join).get(chosenField);
+        } else if (node instanceof EnumerableCalc) {
+            final EnumerableCalc calc = (EnumerableCalc) node;
+            for (RelNode relNode : calc.getInputs()) {
+                if (relNode instanceof EnumerableJoin) {
+                    return getConverter(fieldIndex, field, relNode);
+                } else {
+                    try {
+                        GremlinToEnumerableConverter converter = (GremlinToEnumerableConverter) relNode;
+                        return converter;
+                    } catch (ClassCastException e) {
+
+                    }
+                }
+            }
         }
         return null;
     }

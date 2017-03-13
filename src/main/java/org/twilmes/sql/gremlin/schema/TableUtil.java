@@ -61,11 +61,23 @@ public class TableUtil {
             case "string":
                 return value;
             case "integer":
-                return ((Number) value).intValue();
+                try {
+                    return Integer.valueOf(String.valueOf(value));
+                } catch ( NumberFormatException e ) {
+                    return value;
+                }
             case "long":
-                return ((Number) value).longValue();
+                try {
+                    return Long.valueOf(String.valueOf(value));
+                } catch ( NumberFormatException e ) {
+                    return value;
+                }
             case "double":
-                return ((Number) value).doubleValue();
+                try {
+                    return Double.valueOf(String.valueOf(value));
+                } catch ( NumberFormatException e ) {
+                    return value;
+                }
             case "boolean":
                 if(value instanceof Number) {
                     if(value.equals(0)) {

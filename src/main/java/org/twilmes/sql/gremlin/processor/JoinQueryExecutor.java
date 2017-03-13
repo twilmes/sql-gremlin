@@ -22,6 +22,7 @@ package org.twilmes.sql.gremlin.processor;
 import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
 import org.twilmes.sql.gremlin.rel.GremlinTraversalScan;
 import org.twilmes.sql.gremlin.rel.GremlinTraversalToEnumerableRelConverter;
+import org.twilmes.sql.gremlin.schema.TableColumn;
 import org.twilmes.sql.gremlin.schema.TableDef;
 import org.twilmes.sql.gremlin.schema.TableUtil;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpretable;
@@ -153,8 +154,8 @@ public class JoinQueryExecutor {
     }
 
     private List<Object> project(Map<String, String> fieldToTableMap, List<String> fields,
-                                   List<Map<String, ? extends Element>> results,
-                                   Map<String, TableDef> tableIdToTableDefMap) {
+                                 List<Map<String, ? extends Element>> results,
+                                 Map<String, TableDef> tableIdToTableDefMap) {
         final List<Object> rows = new ArrayList<>(results.size());
         Map<String, String> labelTableIdMap = new HashMap<>();
         for (Map.Entry<String, TableDef> entry : tableIdToTableDefMap.entrySet()) {
@@ -185,8 +186,8 @@ public class JoinQueryExecutor {
                         }
                     }
                 }
-                final Property<Object> property = result.get(tableId).
-                        property(tableIdToTableDefMap.get(tableId).getColumn(simpleFieldName.toLowerCase()).getPropertyName());
+                TableColumn tableColumn = tableIdToTableDefMap.get(tableId).getColumn(simpleFieldName.toLowerCase());
+                final Property<Object> property = tableColumn == null ? Property.empty() : result.get(tableId).property(tableColumn.getPropertyName());
                 if(!(property instanceof EmptyProperty || property instanceof EmptyVertexProperty)) {
                     if(result.get(tableId).label().equals(tableIdToTableDefMap.get(tableId).label)) {
                         val = property.value();
