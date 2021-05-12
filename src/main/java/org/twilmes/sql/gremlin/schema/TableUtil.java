@@ -19,6 +19,8 @@
 
 package org.twilmes.sql.gremlin.schema;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.twilmes.sql.gremlin.rel.GremlinTable;
 import org.twilmes.sql.gremlin.rel.GremlinTableScan;
 import org.apache.calcite.rel.RelNode;
@@ -29,8 +31,14 @@ import java.util.List;
  * Created by twilmes on 12/4/15.
  */
 public class TableUtil {
+    private static final Logger LOGGER = LoggerFactory.getLogger(TableUtil.class);
+
     public static String getProperty(TableDef table, String column) {
-        return table.getColumn(column).getPropertyName();
+        LOGGER.debug("getProperty()");
+        TableColumn tableColumn = table.getColumn(column);
+        final String propName = tableColumn.getPropertyName();
+        LOGGER.debug(String.format("%s (%s) - %s", tableColumn.getName(), tableColumn.getType(), propName));
+        return propName;
     }
 
     public static TableDef getTableDef(List<RelNode> rels) {
@@ -57,6 +65,7 @@ public class TableUtil {
     }
 
     public static Object convertType(Object value, TableColumn column) {
+        // TODO: Switch to look up table.
         switch(column.getType()) {
             case "string":
                 return value;

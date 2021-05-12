@@ -69,7 +69,7 @@ public class GremlinCompiler {
 
         frameworkConfig = Frameworks.newConfigBuilder()
                 .parserConfig(parserConfig)
-                .defaultSchema(rootSchema.add("gremlin", new GremlinSchema(graph, schemaConfig)))
+                .defaultSchema(rootSchema.add("gremlin", new GremlinSchema(schemaConfig)))
                 .traitDefs(traitDefs)
                 .programs(Programs.sequence(Programs.ofRules(Programs.RULE_SET), Programs.CALC_PROGRAM))
                 .build();

@@ -19,9 +19,12 @@
 
 package org.twilmes.sql.gremlin.processor;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
 import org.twilmes.sql.gremlin.rel.GremlinTraversalScan;
 import org.twilmes.sql.gremlin.rel.GremlinTraversalToEnumerableRelConverter;
+import org.twilmes.sql.gremlin.schema.SchemaConfig;
 import org.twilmes.sql.gremlin.schema.TableDef;
 import org.twilmes.sql.gremlin.schema.TableUtil;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpretable;
@@ -48,6 +51,7 @@ import static org.twilmes.sql.gremlin.processor.RelUtils.isConvertable;
  * Created by twilmes on 12/4/15.
  */
 public class SingleQueryExecutor {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SingleQueryExecutor.class);
     private final RelNode node;
     private final GraphTraversal<?, ?> traversal;
     private final TableDef table;
@@ -59,6 +63,7 @@ public class SingleQueryExecutor {
     }
 
     public List<Object> run() {
+        LOGGER.debug("SingleQueryExecutor.run().");
         List<Object> rowResults;
         if(!isConvertable(node)) {
             // go until we hit a converter to find the input
@@ -73,6 +78,7 @@ public class SingleQueryExecutor {
             final List<Object> rows = new ArrayList<>();
 
             for(Object o : results) {
+                boolean skip = false;
                 Element res = (Element) o;
                 Object[] row = new Object[fieldNames.size()];
                 int colNum = 0;
@@ -89,8 +95,13 @@ public class SingleQueryExecutor {
                             // todo add fk (connected vertex) ids
                         }
                     } else if (!(res.property(propName) instanceof EmptyProperty)) {
-                        val = res.property(propName).value();
-                        val = TableUtil.convertType(val, table.getColumn(field));
+                        if (skip = !res.keys().contains(propName)) {
+                            // TODO: Fix this skip stuff
+                            val = "foo";
+                        } else {
+                            val = res.property(propName).value();
+                            val = TableUtil.convertType(val, table.getColumn(field));
+                        }
                     }
                     row[colNum] = val;
                     colNum++;
@@ -110,10 +121,10 @@ public class SingleQueryExecutor {
             final Enumerable<Object> enumerable = bindable.bind(null);
             rowResults = enumerable.toList();
         } else {
-            final List<Map<String, Object>> results = traversal.valueMap().toList();
+            final List<Map<Object, Object>> results = traversal.valueMap().toList();
             final List<Object> rows = new ArrayList<>();
             final List<String> fieldNames = node.getRowType().getFieldNames();
-            for(Map<String, Object> res : results) {
+            for(Map<Object, Object> res : results) {
                 Object[] row = new Object[fieldNames.size()];
                 int colNum = 0;
                 for(String field : fieldNames) {

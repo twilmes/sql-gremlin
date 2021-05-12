@@ -36,16 +36,10 @@ import static java.util.stream.Collectors.toList;
  * Created by twilmes on 9/22/15.
  */
 public class GremlinSchema extends AbstractSchema {
-    private final Graph graph;
     private final SchemaConfig config;
 
-    public GremlinSchema(Graph graph, SchemaConfig config) {
-        this.graph = graph;
+    public GremlinSchema(SchemaConfig config) {
         this.config = config;
-    }
-
-    public Graph getGraph() {
-        return graph;
     }
 
     @Override

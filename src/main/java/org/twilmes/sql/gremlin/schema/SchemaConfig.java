@@ -19,6 +19,8 @@
 
 package org.twilmes.sql.gremlin.schema;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,10 +29,19 @@ import java.util.Map;
  * Created by twilmes on 10/10/15.
  */
 public class SchemaConfig {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SchemaConfig.class);
+
     List<TableConfig> tables;
     List<TableRelationship> relationships;
 
     public List<TableConfig> getTables() {
+        LOGGER.debug("getTables()");
+        tables.forEach(t -> {
+            LOGGER.debug(String.format("Table: %s", t.getName()));
+            t.getColumns().forEach(c -> {
+                LOGGER.debug(String.format("- Column: %s", c.getName()));
+            });
+        });
         return tables;
     }
 
