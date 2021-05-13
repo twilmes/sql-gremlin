@@ -51,8 +51,8 @@ import static org.twilmes.sql.gremlin.schema.TableUtil.getTableDef;
  */
 public class TraversalBuilder {
 
-    public static GraphTraversal toTraversal(List<RelNode> relList) {
-        final GraphTraversal traversal = __.identity();
+    public static GraphTraversal<?, ?> toTraversal(List<RelNode> relList) {
+        final GraphTraversal<?, ?> traversal = __.identity();
         TableDef tableDef = null;
         for(RelNode rel : relList) {
             if(rel instanceof GremlinTableScan) {
@@ -63,8 +63,8 @@ public class TraversalBuilder {
                 GremlinFilter filter = (GremlinFilter) rel;
                 RexNode condition = filter.getCondition();
                 FilterTranslator translator = new FilterTranslator(tableDef, filter.getRowType().getFieldNames());
-                GraphTraversal predicates = translator.translateMatch(condition);
-                for(Step step : (List<Step>)predicates.asAdmin().getSteps()) {
+                GraphTraversal<?, ?> predicates = translator.translateMatch(condition);
+                for(Step<?, ?> step : predicates.asAdmin().getSteps()) {
                     traversal.asAdmin().addStep(step);
                 }
             }
