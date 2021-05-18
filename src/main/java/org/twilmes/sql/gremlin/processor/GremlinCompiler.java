@@ -105,7 +105,7 @@ public class GremlinCompiler {
         // pushed down like filters
         final ScanVisitor scanVisitor = new ScanVisitor();
         new RelWalker(root, scanVisitor);
-        final Map<GremlinToEnumerableConverter, List<RelNode>> scanMap = scanVisitor.getScans();
+        final Map<GremlinToEnumerableConverter, List<RelNode>> scanMap = scanVisitor.getScanMap();
 
         // simple case, no joins
         final GraphTraversal<?, ?> traversal;

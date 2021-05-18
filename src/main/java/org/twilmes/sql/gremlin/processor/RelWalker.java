@@ -27,7 +27,6 @@ import org.twilmes.sql.gremlin.processor.visitors.RelVisitor;
  * Modified by lyndonb-bq on 05/17/21.
  */
 public class RelWalker {
-
     private final RelVisitor visitor;
 
     public RelWalker(final RelNode root, final RelVisitor visitor) {

@@ -44,20 +44,7 @@ public interface GremlinRel extends RelNode {
      * {@link GremlinRel} nodes into a Gremlin query.
      */
     class Implementor {
-        final List<Pair<String, String>> list =
-                new ArrayList<Pair<String, String>>();
-
         RelOptTable table;
         GremlinTable gremlinTable;
-        RexNode filterRoot;
-
-        public void setFilter(final RexNode filterRoot) {
-            this.filterRoot = filterRoot;
-        }
-
-        public void visitChild(final int ordinal, final RelNode input) {
-            assert ordinal == 0;
-            ((GremlinRel) input).implement(this);
-        }
     }
 }

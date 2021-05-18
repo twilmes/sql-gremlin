@@ -19,6 +19,7 @@
 
 package org.twilmes.sql.gremlin.processor.visitors;
 
+import lombok.Getter;
 import org.apache.calcite.adapter.enumerable.EnumerableJoin;
 import org.apache.calcite.rel.RelNode;
 import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
@@ -34,11 +35,8 @@ import java.util.Map;
  * Modified by lyndonb-bq on 05/17/21.
  */
 public class FieldMapVisitor implements RelVisitor {
+    @Getter
     private final Map<EnumerableJoin, Map<String, GremlinToEnumerableConverter>> fieldMap = new HashMap<>();
-
-    public Map<EnumerableJoin, Map<String, GremlinToEnumerableConverter>> getFieldMap() {
-        return fieldMap;
-    }
 
     @Override
     public void visit(final RelNode node) {
@@ -54,16 +52,12 @@ public class FieldMapVisitor implements RelVisitor {
             fieldMap.put(join, new HashMap<>());
         }
 
+        final List<String> leftFields = join.getRowType().getFieldNames().
+                subList(0, left.getRowType().getFieldCount());
         if (left instanceof GremlinToEnumerableConverter) {
-            final List<String> leftFields = join.getRowType().getFieldNames().
-                    subList(0, left.getRowType().getFieldCount());
-            leftFields.stream().forEach(field -> {
-                fieldMap.get(join).put(field, (GremlinToEnumerableConverter) left);
-            });
+            leftFields.forEach(field -> fieldMap.get(join).put(field, (GremlinToEnumerableConverter) left));
         } else {
             // we still need to figure out these fields...so walk on down
-            final List<String> leftFields = join.getRowType().getFieldNames().
-                    subList(0, left.getRowType().getFieldCount());
             int col = 0;
             for (final String field : leftFields) {
                 fieldMap.get(join).put(field, getConverter(col, field, left));
@@ -71,16 +65,12 @@ public class FieldMapVisitor implements RelVisitor {
             }
         }
 
+        final List<String> rightFields = join.getRowType().getFieldNames().
+                subList(left.getRowType().getFieldCount(), join.getRowType().getFieldCount());
         if (right instanceof GremlinToEnumerableConverter) {
-            final List<String> rightFields = join.getRowType().getFieldNames().
-                    subList(left.getRowType().getFieldCount(), join.getRowType().getFieldCount());
-            rightFields.stream().forEach(field -> {
-                fieldMap.get(join).put(field, (GremlinToEnumerableConverter) right);
-            });
+            rightFields.forEach(field -> fieldMap.get(join).put(field, (GremlinToEnumerableConverter) right));
         } else {
             // we still need to figure out these fields...so walk on down
-            final List<String> rightFields = join.getRowType().getFieldNames().
-                    subList(left.getRowType().getFieldCount(), join.getRowType().getFieldCount());
             int col = 0;
             for (final String field : rightFields) {
                 fieldMap.get(join).put(field, getConverter(col, field, right));

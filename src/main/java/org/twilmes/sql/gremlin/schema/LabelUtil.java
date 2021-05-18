@@ -32,7 +32,7 @@ public class LabelUtil {
     public static LabelInfo getLabel(final TableDef t1, final TableDef t2, final SchemaConfig config) {
         final List<TableRelationship> relationships = config.getRelationships();
 
-        Optional<TableRelationship> relationship = null;
+        Optional<TableRelationship> relationship;
         if (t1.isVertex && !t2.isVertex) {
             relationship = relationships.stream().filter(tableRel ->
                     tableRel.getOutTable().equals(t1.label) && tableRel.getEdgeLabel().equals(t2.label)).findFirst();
@@ -60,10 +60,8 @@ public class LabelUtil {
 
         relationship = relationships.stream().filter(tableRel ->
                 tableRel.getInTable().equals(t1.label) && tableRel.getOutTable().equals(t2.label)).findFirst();
-        if (relationship.isPresent()) {
-            return new LabelInfo(relationship.get().getEdgeLabel(), Direction.IN);
-        }
+        return relationship.map(tableRelationship -> new LabelInfo(tableRelationship.getEdgeLabel(), Direction.IN))
+                .orElse(null);
 
-        return null;
     }
 }

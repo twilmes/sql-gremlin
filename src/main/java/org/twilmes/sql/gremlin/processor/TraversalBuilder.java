@@ -75,7 +75,8 @@ public class TraversalBuilder {
 
     public static GraphTraversal<?, ?> buildMatch(final GraphTraversalSource g,
                                                   final Map<String, GraphTraversal<?, ?>> tableIdTraversalMap,
-                                                  final List<Pair<String, String>> joinPairs, final SchemaConfig schemaConfig,
+                                                  final List<Pair<String, String>> joinPairs,
+                                                  final SchemaConfig schemaConfig,
                                                   final Map<String, GremlinToEnumerableConverter> tableIdConverterMap) {
         final GraphTraversal<?, ?> startTraversal = g.V();
         final List<GraphTraversal<?, ?>> matchTraversals = new ArrayList<>();
@@ -150,6 +151,7 @@ public class TraversalBuilder {
             final LabelInfo labelInfo = LabelUtil.getLabel(leftTableDef, rightTableDef, schemaConfig);
 
             final GraphTraversal<?, ?> connectingTraversal;
+            // TODO: This logic is much more complicated than it needs to be, simplify it.
             if (labelInfo.getDirection().equals(Direction.OUT)) {
                 if (leftTableDef.isVertex && rightTableDef.isVertex) {
                     connectingTraversal = __.out(labelInfo.getLabel());
@@ -181,11 +183,12 @@ public class TraversalBuilder {
             matchTraversals.add(addTraversal(__.as(leftId), connectingTraversal));
         }
 
-        return startTraversal.match(matchTraversals.toArray(new GraphTraversal<?, ?>[matchTraversals.size()]));
+        return startTraversal.match(matchTraversals.toArray(new GraphTraversal<?, ?>[0]));
     }
 
-    public static GraphTraversal addTraversal(final GraphTraversal<?, ?> traversal, final GraphTraversal<?, ?> addMe) {
-        for (final Step step : addMe.asAdmin().getSteps()) {
+    public static GraphTraversal<?, ?> addTraversal(final GraphTraversal<?, ?> traversal,
+                                                    final GraphTraversal<?, ?> addMe) {
+        for (final Step<?, ?> step : addMe.asAdmin().getSteps()) {
             traversal.asAdmin().addStep(step);
         }
         return traversal;

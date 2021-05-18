@@ -19,46 +19,24 @@
 
 package org.twilmes.sql.gremlin.schema;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Created by twilmes on 10/10/15.
  * Modified by lyndonb-bq on 05/17/21.
  */
+@Setter
+@Getter
 public class TableRelationship {
     private String outTable;
     private String inTable;
     private String edgeLabel;
     private String fkTable;
 
-    public String getEdgeLabel() {
-        return edgeLabel;
-    }
-
-    public void setEdgeLabel(final String edgeLabel) {
-        this.edgeLabel = edgeLabel;
-    }
-
-    public String getOutTable() {
-        return outTable;
-    }
-
-    public void setOutTable(final String outTable) {
-        this.outTable = outTable;
-    }
-
-    public String getInTable() {
-        return inTable;
-    }
-
-    public void setInTable(final String inTable) {
-        this.inTable = inTable;
-    }
-
+    // Override with null check.
     public String getFkTable() {
         return this.fkTable != null ? this.fkTable : this.outTable;
-    }
-
-    public void setFkTable(final String fkTable) {
-        this.fkTable = fkTable;
     }
 
     public Boolean isBetween(final String t1, final String t2) {

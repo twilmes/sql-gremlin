@@ -56,7 +56,6 @@ public class GremlinTraversalToEnumerableRelConverter extends ConverterImpl
 
     @Override
     public Result implement(final EnumerableRelImplementor implementor, final Prefer pref) {
-        final BlockBuilder list = new BlockBuilder();
         final GremlinTraversalRel.Implementor gremlinImplementor =
                 new GremlinTraversalRel.Implementor();
         gremlinImplementor.visitChild(0, getInput());

@@ -31,19 +31,12 @@ public class TableDef {
     public String tableName;
     public String label;
     public Boolean isVertex;
-
     public Map<String, TableColumn> columns = new HashMap<>();
-    public Map<String, String> outEdgeMap = new HashMap<>();
-    public Map<String, String> inEdgeMap = new HashMap<>();
 
     public TableColumn getColumn(final String column) {
         final Optional<TableColumn> res = this.columns.values().
                 stream().filter(col -> column.toLowerCase().equals(col.getName().toLowerCase())).
                 findFirst();
-        if (res.isPresent()) {
-            return res.get();
-        } else {
-            return null;
-        }
+        return res.orElse(null);
     }
 }

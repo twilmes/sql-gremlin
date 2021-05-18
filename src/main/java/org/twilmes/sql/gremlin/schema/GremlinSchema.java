@@ -73,20 +73,14 @@ public class GremlinSchema extends AbstractSchema {
             // if this is an edge, it'll be the edge id
             final String pkName = tableDef.label.toUpperCase() + "_ID";
             pk.setName(pkName);
-            if (tableDef.isVertex) {
-                pk.setType("long");
-            } else {
-                pk.setType("string");
-            }
+            pk.setType(tableDef.isVertex ? "long" : "string");
             tableDef.columns.put(pkName, pk);
 
             if (tableDef.isVertex) {
                 // get relationship info
                 final List<TableRelationship> outRelationships = config.getRelationships().
-                        stream().filter(rel -> {
-                    return rel.getOutTable().equals(tableConfig.getName()) &&
-                            rel.getFkTable().equals(rel.getOutTable());
-                }).collect(toList());
+                        stream().filter(rel -> rel.getOutTable().equals(tableConfig.getName()) &&
+                        rel.getFkTable().equals(rel.getOutTable())).collect(toList());
                 final List<TableRelationship> inRelationships = config.getRelationships().
                         stream().filter(rel -> rel.getInTable().equals(tableConfig.getName()) &&
                         rel.getFkTable().equals(rel.getInTable())).collect(toList());

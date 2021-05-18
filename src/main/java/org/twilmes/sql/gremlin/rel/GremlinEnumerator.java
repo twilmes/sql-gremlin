@@ -47,8 +47,7 @@ class GremlinEnumerator<E> implements Enumerator<E> {
     public boolean moveNext() {
         try {
             if (cursor.hasNext()) {
-                final E row = (E) cursor.next();
-                current = row;
+                current = (E) cursor.next();
                 return true;
             } else {
                 current = null;

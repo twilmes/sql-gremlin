@@ -19,36 +19,22 @@
 
 package org.twilmes.sql.gremlin.schema;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Created by twilmes on 10/10/15.
  * Modified by lyndonb-bq on 05/17/21.
  */
+@Getter
+@Setter
 public class TableColumn {
     private String name;
     private String type;
     private String propertyName;
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(final String name) {
-        this.name = name;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(final String type) {
-        this.type = type;
-    }
-
+    // Override with null check.
     public String getPropertyName() {
         return propertyName != null ? propertyName : name;
-    }
-
-    public void setPropertyName(final String propertyName) {
-        this.propertyName = propertyName;
     }
 }

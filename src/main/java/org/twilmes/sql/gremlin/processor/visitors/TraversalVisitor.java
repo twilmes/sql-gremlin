@@ -41,11 +41,15 @@ public class TraversalVisitor implements RelVisitor {
     private static final String PREFIX = "table_";
     private final Map<GremlinToEnumerableConverter, List<RelNode>> scanMap;
     private final Map<EnumerableJoin, Map<String, GremlinToEnumerableConverter>> fieldMap;
+    @Getter
     private final List<GraphTraversal<?, ?>> traversals = new ArrayList<>();
     @Getter
     private final Map<GremlinToEnumerableConverter, String> tableIdMap = new HashMap<>();
+    @Getter
     private final Map<String, GremlinToEnumerableConverter> tableIdConverterMap = new HashMap<>();
+    @Getter
     private final Map<String, GraphTraversal<?, ?>> tableTraversalMap = new HashMap<>();
+    @Getter
     private final List<Pair<String, String>> joinPairs = new ArrayList<>();
     private Integer id = 0;
 
@@ -54,18 +58,6 @@ public class TraversalVisitor implements RelVisitor {
                             final Map<EnumerableJoin, Map<String, GremlinToEnumerableConverter>> fieldMap) {
         this.scanMap = scanMap;
         this.fieldMap = fieldMap;
-    }
-
-    public List<Pair<String, String>> getJoinPairs() {
-        return joinPairs;
-    }
-
-    public Map<String, GraphTraversal<?, ?>> getTableTraversalMap() {
-        return tableTraversalMap;
-    }
-
-    public Map<String, GremlinToEnumerableConverter> getTableIdConverterMap() {
-        return tableIdConverterMap;
     }
 
     @Override

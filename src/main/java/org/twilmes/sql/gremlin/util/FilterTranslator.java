@@ -65,31 +65,28 @@ public class FilterTranslator {
         return literal.getValue2();
     }
 
-    public GraphTraversal translateMatch(final RexNode condition) {
-        final GraphTraversal traversal = translateOr(condition);
-        return traversal;
+    public GraphTraversal<?, ?> translateMatch(final RexNode condition) {
+        return translateOr(condition);
     }
 
-    private GraphTraversal translateOr(final RexNode condition) {
+    private GraphTraversal<?, ?> translateOr(final RexNode condition) {
         final List<GraphTraversal> list = new ArrayList<>();
         for (final RexNode node : RelOptUtil.disjunctions(condition)) {
             list.addAll(translateAnd(node));
         }
-        switch (list.size()) {
-            case 1:
-                return list.get(0);
-            default:
-                final Map<String, Object> map = builder.map();
-                map.put("$or", list);
-                return __.__().or(list.toArray(new GraphTraversal[list.size()]));
+        if (list.size() == 1) {
+            return list.get(0);
         }
+        final Map<String, Object> map = builder.map();
+        map.put("$or", list);
+        return __.__().or(list.toArray(new GraphTraversal[0]));
     }
 
     /**
      * Translates a condition that may be an AND of other conditions. Gathers
      * together conditions that apply to the same field.
      */
-    private List<GraphTraversal> translateAnd(final RexNode node0) {
+    private List<GraphTraversal<?, ?>> translateAnd(final RexNode node0) {
         eqMap.clear();
         multimap.clear();
         for (final RexNode node : RelOptUtil.conjunctions(node0)) {
@@ -109,8 +106,8 @@ public class FilterTranslator {
             map.put(entry.getKey(), map2);
         }
 
-        final List<GraphTraversal> traversals = new ArrayList<>();
-        final GraphTraversal andTraversal = __.identity();
+        final List<GraphTraversal<?, ?>> traversals = new ArrayList<>();
+        final GraphTraversal<?, ?> andTraversal = __.identity();
         // process map
         for (final Map.Entry<String, Object> entry : map.entrySet()) {
             final String fieldName = entry.getKey().toLowerCase();
@@ -121,7 +118,7 @@ public class FilterTranslator {
                     final String op = valEntry.getKey();
                     Object val = valEntry.getValue();
                     val = TableUtil.convertType(val, tableDef.getColumn(fieldName));
-                    P predicate = null;
+                    P<?> predicate = null;
                     switch (op) {
                         case "$gt":
                             predicate = P.gt(val);

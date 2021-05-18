@@ -29,8 +29,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.WithOptions;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyProperty;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
 import org.twilmes.sql.gremlin.rel.GremlinTraversalScan;
 import org.twilmes.sql.gremlin.rel.GremlinTraversalToEnumerableRelConverter;
@@ -51,7 +49,6 @@ import static org.twilmes.sql.gremlin.processor.RelUtils.isConvertable;
  * Modified by lyndonb-bq on 05/17/21.
  */
 public class SingleQueryExecutor {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SingleQueryExecutor.class);
     private final RelNode node;
     private final GraphTraversal<?, ?> traversal;
     private final TableDef table;
@@ -151,14 +148,8 @@ public class SingleQueryExecutor {
             final RelDataType rowType = input.getRowType();
 
             final List<String> fieldNames = rowType.getFieldNames();
-            // System.out.println("Field names: " + fieldNames);
-
 
             final List<Map<Object, Object>> results = traversal.valueMap().with(WithOptions.tokens).toList();
-            // System.out.println("results:");
-            results.forEach(map -> {
-                // System.out.println("Map: " + map);
-            });
             final List<Object> rows = new ArrayList<>();
             int idx = 0;
             for (final Map<Object, Object> mapResult : results) {
@@ -181,9 +172,6 @@ public class SingleQueryExecutor {
                         if (mapResult.containsKey(propName)) {
                             val = ((List) mapResult.get(field.toLowerCase())).get(0);
                             val = TableUtil.convertType(val, table.getColumn(field));
-                        } else {
-                            // TODO: Can default this to null?
-                            val = null;
                         }
                     }
                     row[idx] = val;

@@ -61,9 +61,8 @@ public class QueryPlanner {
             final RelNode convert = planner.convert(validate);
             final RelTraitSet traitSet = planner.getEmptyTraitSet()
                     .replace(EnumerableConvention.INSTANCE);
-            final RelNode transform = planner.transform(0, traitSet, convert);
 
-            return transform;
+            return planner.transform(0, traitSet, convert);
         } catch (final Exception e) {
             throw new ParseException("Error parsing: " + sql, e);
         }

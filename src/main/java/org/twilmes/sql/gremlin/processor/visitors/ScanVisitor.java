@@ -19,6 +19,7 @@
 
 package org.twilmes.sql.gremlin.processor.visitors;
 
+import lombok.Getter;
 import org.apache.calcite.rel.RelNode;
 import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
 import java.util.ArrayList;
@@ -31,13 +32,9 @@ import java.util.Map;
  * Modified by lyndonb-bq on 05/17/21.
  */
 public class ScanVisitor implements RelVisitor {
-
+    @Getter
     private final Map<GremlinToEnumerableConverter, List<RelNode>> scanMap = new HashMap<>();
     private List<RelNode> stack = new ArrayList<>();
-
-    public Map<GremlinToEnumerableConverter, List<RelNode>> getScans() {
-        return scanMap;
-    }
 
     @Override
     public void visit(final RelNode node) {

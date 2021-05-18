@@ -116,7 +116,7 @@ public class JoinQueryExecutor {
 
             parent.replaceInput(0, converter);
 
-            final Bindable bindable = EnumerableInterpretable.toBindable(null, null,
+            final Bindable<Object> bindable = EnumerableInterpretable.toBindable(null, null,
                     (EnumerableRel) node, EnumerableRel.Prefer.ARRAY);
 
             final Enumerable<Object> enumerable = bindable.bind(null);
@@ -129,7 +129,7 @@ public class JoinQueryExecutor {
             final RelDataType rowType = input.getRowType();
 
             final List<String> fieldNames = rowType.getFieldNames();
-            final List<String> tableIds = new ArrayList(tableIdMap.values());
+            final List<String> tableIds = new ArrayList<>(tableIdMap.values());
             if (tableIds.size() == 1) {
                 traversal.select(tableIds.get(0));
             } else if (tableIds.size() == 2) {

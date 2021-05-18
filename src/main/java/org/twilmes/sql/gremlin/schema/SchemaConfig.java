@@ -19,50 +19,17 @@
 
 package org.twilmes.sql.gremlin.schema;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.util.HashMap;
+import lombok.Getter;
+import lombok.Setter;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Created by twilmes on 10/10/15.
  * Modified by lyndonb-bq on 05/17/21.
  */
+@Getter
+@Setter
 public class SchemaConfig {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SchemaConfig.class);
-
-    List<TableConfig> tables;
-    List<TableRelationship> relationships;
-
-    public List<TableConfig> getTables() {
-        LOGGER.debug("getTables()");
-        tables.forEach(t -> {
-            LOGGER.debug(String.format("Table: %s", t.getName()));
-            t.getColumns().forEach(c -> {
-                LOGGER.debug(String.format("- Column: %s", c.getName()));
-            });
-        });
-        return tables;
-    }
-
-    public void setTables(final List<TableConfig> tables) {
-        this.tables = tables;
-    }
-
-    public List<TableRelationship> getRelationships() {
-        return relationships;
-    }
-
-    public void setRelationships(final List<TableRelationship> relationships) {
-        this.relationships = relationships;
-    }
-
-    public Map<String, TableConfig> getTableMap() {
-        final Map<String, TableConfig> tableMap = new HashMap<>();
-        for (final TableConfig table : tables) {
-            tableMap.put(table.getName(), table);
-        }
-        return tableMap;
-    }
+    private List<TableConfig> tables;
+    private List<TableRelationship> relationships;
 }

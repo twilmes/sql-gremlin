@@ -19,27 +19,17 @@
 
 package org.twilmes.sql.gremlin.schema;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 
 /**
  * Created by twilmes on 12/8/15.
  * Modified by lyndonb-bq on 05/17/21.
  */
+@AllArgsConstructor
+@Getter
 public class LabelInfo {
-
     private final String label;
     private final Direction direction;
-
-    public LabelInfo(final String label, final Direction direction) {
-        this.label = label;
-        this.direction = direction;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public Direction getDirection() {
-        return direction;
-    }
 }

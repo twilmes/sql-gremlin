@@ -38,7 +38,6 @@
         <junit.version>4.12</junit.version>
         <tinkerpop.version>3.4.8</tinkerpop.version>
         <calcite.version>1.5.0</calcite.version>
-        <log4jversion>2.8</log4jversion>
         <javac.target>1.8</javac.target>
     </properties>
 
