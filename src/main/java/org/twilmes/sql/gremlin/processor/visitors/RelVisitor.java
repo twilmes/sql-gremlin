@@ -17,14 +17,14 @@
  * under the License.
  */
 
-package org.twilmes.sql.gremlin.processor;
+package org.twilmes.sql.gremlin.processor.visitors;
 
 import org.apache.calcite.rel.RelNode;
 
 /**
  * Created by twilmes on 11/29/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public interface RelVisitor {
-
-    public void visit(RelNode node);
+    void visit(RelNode node);
 }

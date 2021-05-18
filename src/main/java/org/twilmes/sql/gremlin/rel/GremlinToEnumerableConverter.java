@@ -23,39 +23,44 @@ package org.twilmes.sql.gremlin.rel;
  * Created by twilmes on 9/25/15.
  */
 
-import org.apache.calcite.adapter.enumerable.*;
-import org.apache.calcite.plan.*;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
-
 import java.util.List;
 
 /**
  * Relational expression representing a scan of a table in a TinkerPop data source.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class GremlinToEnumerableConverter
         extends ConverterImpl
         implements EnumerableRel {
     protected GremlinToEnumerableConverter(
-            RelOptCluster cluster,
-            RelTraitSet traits,
-            RelNode input) {
+            final RelOptCluster cluster,
+            final RelTraitSet traits,
+            final RelNode input) {
         super(cluster, ConventionTraitDef.INSTANCE, traits, input);
     }
 
     @Override
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    public RelNode copy(final RelTraitSet traitSet, final List<RelNode> inputs) {
         return new GremlinToEnumerableConverter(
                 getCluster(), traitSet, sole(inputs));
     }
 
     @Override
-    public RelOptCost computeSelfCost(RelOptPlanner planner) {
+    public RelOptCost computeSelfCost(final RelOptPlanner planner) {
         return super.computeSelfCost(planner).multiplyBy(.1);
     }
 
     @Override
-    public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+    public Result implement(final EnumerableRelImplementor implementor, final Prefer pref) {
         return null;
     }
 }

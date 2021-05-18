@@ -23,43 +23,45 @@ import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
-import org.apache.calcite.linq4j.tree.*;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.Blocks;
+import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.type.RelDataType;
-
 import java.util.List;
 
 /**
  * Created by twilmes on 11/26/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class GremlinTraversalToEnumerableRelConverter extends ConverterImpl
         implements EnumerableRel {
-    public GremlinTraversalToEnumerableRelConverter (
-            RelOptCluster cluster,
-            RelTraitSet traits,
-            RelNode input, RelDataType rowType) {
+    public GremlinTraversalToEnumerableRelConverter(
+            final RelOptCluster cluster,
+            final RelTraitSet traits,
+            final RelNode input, final RelDataType rowType) {
         super(cluster, ConventionTraitDef.INSTANCE, traits, input);
         this.rowType = rowType;
     }
 
     @Override
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    public RelNode copy(final RelTraitSet traitSet, final List<RelNode> inputs) {
         return new GremlinTraversalToEnumerableRelConverter(
                 getCluster(), traitSet, sole(inputs), rowType);
     }
 
     @Override
-    public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+    public Result implement(final EnumerableRelImplementor implementor, final Prefer pref) {
         final BlockBuilder list = new BlockBuilder();
         final GremlinTraversalRel.Implementor gremlinImplementor =
                 new GremlinTraversalRel.Implementor();
         gremlinImplementor.visitChild(0, getInput());
 
-        PhysType physType = PhysTypeImpl.of(implementor.getTypeFactory(),
+        final PhysType physType = PhysTypeImpl.of(implementor.getTypeFactory(),
                 getRowType(), pref.preferArray());
 
         return implementor.result(
@@ -67,7 +69,6 @@ public class GremlinTraversalToEnumerableRelConverter extends ConverterImpl
                 Blocks.toBlock(
                         Expressions.call(GremlinTraversalScan.class,
                                 "scan")));
-//        return null;
     }
 
 }

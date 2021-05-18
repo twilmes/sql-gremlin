@@ -27,21 +27,23 @@ import org.apache.calcite.rex.RexNode;
 
 /**
  * Created by twilmes on 11/14/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class GremlinFilter extends Filter implements GremlinRel {
     public GremlinFilter(
-            RelOptCluster cluster,
-            RelTraitSet traitSet,
-            RelNode child,
-            RexNode condition) {
+            final RelOptCluster cluster,
+            final RelTraitSet traitSet,
+            final RelNode child,
+            final RexNode condition) {
         super(cluster, traitSet, child, condition);
     }
 
     @Override
-    public Filter copy(RelTraitSet traitSet, RelNode input, RexNode condition) {
+    public Filter copy(final RelTraitSet traitSet, final RelNode input, final RexNode condition) {
         return new GremlinFilter(getCluster(), traitSet, input, condition);
     }
 
     @Override
-    public void implement(Implementor implementor) {}
+    public void implement(final Implementor implementor) {
+    }
 }

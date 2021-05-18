@@ -21,6 +21,7 @@ package org.twilmes.sql.gremlin;
 
 /**
  * Created by twilmes on 12/10/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class SchemaException extends RuntimeException {
     public SchemaException(final String message, final Throwable cause) {

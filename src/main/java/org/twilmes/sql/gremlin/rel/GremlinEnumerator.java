@@ -21,20 +21,22 @@ package org.twilmes.sql.gremlin.rel;
 
 /**
  * Created by twilmes on 9/25/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 
 import org.apache.calcite.linq4j.Enumerator;
-
 import java.util.Iterator;
 import java.util.List;
 
 
-/** Enumerator that reads from a list result set. */
+/**
+ * Enumerator that reads from a list result set.
+ */
 class GremlinEnumerator<E> implements Enumerator<E> {
     private final Iterator<Object[]> cursor;
     private E current;
 
-    public GremlinEnumerator(List<Object[]> rows) {
+    public GremlinEnumerator(final List<Object[]> rows) {
         this.cursor = rows.iterator();
     }
 
@@ -45,14 +47,14 @@ class GremlinEnumerator<E> implements Enumerator<E> {
     public boolean moveNext() {
         try {
             if (cursor.hasNext()) {
-                E row = (E) cursor.next();
+                final E row = (E) cursor.next();
                 current = row;
                 return true;
             } else {
                 current = null;
                 return false;
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new RuntimeException(e);
         }
     }

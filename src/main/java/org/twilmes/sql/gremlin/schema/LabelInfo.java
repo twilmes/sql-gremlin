@@ -23,13 +23,14 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 
 /**
  * Created by twilmes on 12/8/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class LabelInfo {
 
     private final String label;
     private final Direction direction;
 
-    public LabelInfo(String label, Direction direction) {
+    public LabelInfo(final String label, final Direction direction) {
         this.label = label;
         this.direction = direction;
     }

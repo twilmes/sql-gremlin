@@ -17,15 +17,16 @@
  * under the License.
  */
 
-package org.twilmes.sql.gremlin.processor;
+package org.twilmes.sql.gremlin.processor.visitors;
 
-import org.apache.calcite.util.Pair;
-import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
+import lombok.Getter;
 import org.apache.calcite.adapter.enumerable.EnumerableJoin;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.Pair;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-
+import org.twilmes.sql.gremlin.processor.TraversalBuilder;
+import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,37 +34,43 @@ import java.util.Map;
 
 /**
  * Created by twilmes on 11/29/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class TraversalVisitor implements RelVisitor {
 
+    private static final String PREFIX = "table_";
     private final Map<GremlinToEnumerableConverter, List<RelNode>> scanMap;
     private final Map<EnumerableJoin, Map<String, GremlinToEnumerableConverter>> fieldMap;
+    private final List<GraphTraversal<?, ?>> traversals = new ArrayList<>();
+    @Getter
+    private final Map<GremlinToEnumerableConverter, String> tableIdMap = new HashMap<>();
+    private final Map<String, GremlinToEnumerableConverter> tableIdConverterMap = new HashMap<>();
+    private final Map<String, GraphTraversal<?, ?>> tableTraversalMap = new HashMap<>();
+    private final List<Pair<String, String>> joinPairs = new ArrayList<>();
     private Integer id = 0;
-    private Map<GremlinToEnumerableConverter, String> tableIdMap = new HashMap<>();
-    private Map<String, GremlinToEnumerableConverter> tableIdConverterMap = new HashMap<>();
-    private Map<String, GraphTraversal<?, ?>> tableTraversalMap = new HashMap<>();
-    private List<Pair<String, String>> joinPairs = new ArrayList<>();
-    private static final String PREFIX = "table_";
-    private final List<GraphTraversal> traversals = new ArrayList<>();
 
-
-
-    public TraversalVisitor(GraphTraversalSource traversalSource,
-                            Map<GremlinToEnumerableConverter, List<RelNode>> scanMap,
-                            Map<EnumerableJoin, Map<String, GremlinToEnumerableConverter>> fieldMap) {
+    public TraversalVisitor(final GraphTraversalSource traversalSource,
+                            final Map<GremlinToEnumerableConverter, List<RelNode>> scanMap,
+                            final Map<EnumerableJoin, Map<String, GremlinToEnumerableConverter>> fieldMap) {
         this.scanMap = scanMap;
         this.fieldMap = fieldMap;
     }
 
-    public List<Pair<String, String>> getJoinPairs() { return joinPairs; }
+    public List<Pair<String, String>> getJoinPairs() {
+        return joinPairs;
+    }
 
-    public Map<String, GraphTraversal<?, ?>> getTableTraversalMap() { return tableTraversalMap; }
+    public Map<String, GraphTraversal<?, ?>> getTableTraversalMap() {
+        return tableTraversalMap;
+    }
 
-    public Map<String, GremlinToEnumerableConverter> getTableIdConverterMap() { return tableIdConverterMap; }
+    public Map<String, GremlinToEnumerableConverter> getTableIdConverterMap() {
+        return tableIdConverterMap;
+    }
 
     @Override
-    public void visit(RelNode node) {
-        if(!(node instanceof EnumerableJoin)) {
+    public void visit(final RelNode node) {
+        if (!(node instanceof EnumerableJoin)) {
             return;
         }
 
@@ -81,19 +88,20 @@ public class TraversalVisitor implements RelVisitor {
         final String leftAliasedColumn = leftJoinFields.get(leftKeyId);
         final String rightAliasedColumn = rightJoinFields.get(rightKeyId);
 
-        if(!(left instanceof GremlinToEnumerableConverter)) {
+        if (!(left instanceof GremlinToEnumerableConverter)) {
+            // This looks like a bug but isn't.
             left = fieldMap.get(left).get(leftAliasedColumn);
         } else {
-            List<RelNode> scan = scanMap.get(left);
-            GraphTraversal leftTraversal = TraversalBuilder.toTraversal(scan);
+            final List<RelNode> scan = scanMap.get(left);
+            final GraphTraversal<?, ?> leftTraversal = TraversalBuilder.toTraversal(scan);
             traversals.add(leftTraversal);
             tableTraversalMap.put(getTableId((GremlinToEnumerableConverter) left), leftTraversal);
         }
-        if(!(right instanceof GremlinToEnumerableConverter)) {
+        if (!(right instanceof GremlinToEnumerableConverter)) {
             right = fieldMap.get(join).get(rightAliasedColumn);
         } else {
-            List<RelNode> scan = scanMap.get(right);
-            GraphTraversal rightTraversal = TraversalBuilder.toTraversal(scan);
+            final List<RelNode> scan = scanMap.get(right);
+            final GraphTraversal<?, ?> rightTraversal = TraversalBuilder.toTraversal(scan);
             traversals.add(rightTraversal);
             tableTraversalMap.put(getTableId((GremlinToEnumerableConverter) right), rightTraversal);
         }
@@ -107,18 +115,14 @@ public class TraversalVisitor implements RelVisitor {
         joinPairs.add(new Pair<>(leftId, rightId));
     }
 
-    private String getTableId(GremlinToEnumerableConverter converter) {
+    private String getTableId(final GremlinToEnumerableConverter converter) {
         String tableId = tableIdMap.get(converter);
-        if(tableId == null) {
+        if (tableId == null) {
             tableId = PREFIX + id;
             tableIdMap.put(converter, tableId);
             tableIdConverterMap.put(tableId, converter);
             id++;
         }
         return tableId;
-    }
-
-    public Map<GremlinToEnumerableConverter, String> getTableIdMap() {
-        return tableIdMap;
     }
 }

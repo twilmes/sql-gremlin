@@ -21,6 +21,7 @@ package org.twilmes.sql.gremlin.schema;
 
 /**
  * Created by twilmes on 10/10/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class TableRelationship {
     private String outTable;
@@ -32,7 +33,7 @@ public class TableRelationship {
         return edgeLabel;
     }
 
-    public void setEdgeLabel(String edgeLabel) {
+    public void setEdgeLabel(final String edgeLabel) {
         this.edgeLabel = edgeLabel;
     }
 
@@ -40,7 +41,7 @@ public class TableRelationship {
         return outTable;
     }
 
-    public void setOutTable(String outTable) {
+    public void setOutTable(final String outTable) {
         this.outTable = outTable;
     }
 
@@ -48,21 +49,23 @@ public class TableRelationship {
         return inTable;
     }
 
-    public void setInTable(String inTable) {
+    public void setInTable(final String inTable) {
         this.inTable = inTable;
     }
 
-    public String getFkTable() { return this.fkTable != null ? this.fkTable : this.outTable; }
+    public String getFkTable() {
+        return this.fkTable != null ? this.fkTable : this.outTable;
+    }
 
-    public void setFkTable(String fkTable) { this.fkTable = fkTable; }
+    public void setFkTable(final String fkTable) {
+        this.fkTable = fkTable;
+    }
 
-    public Boolean isBetween(String t1, String t2) {
-        if(t1.equalsIgnoreCase(inTable) && t2.equalsIgnoreCase(outTable)) {
-            return true;
-        } else if (t2.equalsIgnoreCase(inTable) && t1.equalsIgnoreCase(outTable)) {
+    public Boolean isBetween(final String t1, final String t2) {
+        if (t1.equalsIgnoreCase(inTable) && t2.equalsIgnoreCase(outTable)) {
             return true;
         } else {
-            return false;
+            return t2.equalsIgnoreCase(inTable) && t1.equalsIgnoreCase(outTable);
         }
     }
 

@@ -19,25 +19,29 @@
 
 package org.twilmes.sql.gremlin.rel;
 
-import org.apache.calcite.plan.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
-
 import java.util.Arrays;
 import java.util.List;
 
 /**
  * Created by twilmes on 9/25/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class GremlinTableScan extends TableScan implements GremlinRel {
     private final GremlinTable gremlinTable;
     private final int[] fields;
 
-    protected GremlinTableScan(RelOptCluster cluster, RelTraitSet traitSet,
-                               RelOptTable table, GremlinTable gremlinTable, int[] fields) {
+    protected GremlinTableScan(final RelOptCluster cluster, final RelTraitSet traitSet,
+                               final RelOptTable table, final GremlinTable gremlinTable, final int[] fields) {
         super(cluster, traitSet, table);
         this.gremlinTable = gremlinTable;
         this.fields = fields;
@@ -51,7 +55,7 @@ public class GremlinTableScan extends TableScan implements GremlinRel {
     }
 
     @Override
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    public RelNode copy(final RelTraitSet traitSet, final List<RelNode> inputs) {
         assert inputs.isEmpty();
         return this;
     }
@@ -61,37 +65,41 @@ public class GremlinTableScan extends TableScan implements GremlinRel {
         final List<RelDataTypeField> fieldList = table.getRowType().getFieldList();
         final RelDataTypeFactory.FieldInfoBuilder builder =
                 getCluster().getTypeFactory().builder();
-        for (int field : fields) {
+        for (final int field : fields) {
             builder.add(fieldList.get(field));
         }
         return builder.build();
     }
 
     @Override
-    public void register(RelOptPlanner planner) {
+    public void register(final RelOptPlanner planner) {
         planner.addRule(GremlinToEnumerableConverterRule.INSTANCE);
-        for (RelOptRule rule : GremlinRules.RULES) {
+        for (final RelOptRule rule : GremlinRules.RULES) {
             planner.addRule(rule);
         }
     }
 
     @Override
-    public void implement(Implementor implementor) {
+    public void implement(final Implementor implementor) {
         implementor.gremlinTable = gremlinTable;
         implementor.table = table;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
-        GremlinTableScan that = (GremlinTableScan) o;
+        final GremlinTableScan that = (GremlinTableScan) o;
 
-        if (!Arrays.equals(fields, that.fields)) return false;
-        if (!gremlinTable.equals(that.gremlinTable)) return false;
-
-        return true;
+        if (!Arrays.equals(fields, that.fields)) {
+            return false;
+        }
+        return gremlinTable.equals(that.gremlinTable);
     }
 
     @Override

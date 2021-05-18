@@ -21,6 +21,7 @@ package org.twilmes.sql.gremlin.schema;
 
 /**
  * Created by twilmes on 10/10/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class TableColumn {
     private String name;
@@ -31,7 +32,7 @@ public class TableColumn {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -39,11 +40,15 @@ public class TableColumn {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 
-    public String getPropertyName() { return propertyName != null ? propertyName : name; }
+    public String getPropertyName() {
+        return propertyName != null ? propertyName : name;
+    }
 
-    public void setPropertyName(String propertyName) { this.propertyName = propertyName; }
+    public void setPropertyName(final String propertyName) {
+        this.propertyName = propertyName;
+    }
 }

@@ -31,8 +31,9 @@ import org.apache.calcite.rel.logical.LogicalFilter;
  * List of rules that get pushed down and converted into GremlinTraversals.  Right now
  * only filter is pushed down using rules.  Joins are converted, but handled the by RelWalker
  * utilities.
- *
+ * <p>
  * Created by twilmes on 11/14/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class GremlinRules {
 
@@ -42,11 +43,12 @@ public class GremlinRules {
 
     abstract static class GremlinConverterRule extends ConverterRule {
         protected final Convention out;
+
         public GremlinConverterRule(
-                Class<? extends RelNode> clazz,
-                RelTrait in,
-                Convention out,
-                String description) {
+                final Class<? extends RelNode> clazz,
+                final RelTrait in,
+                final Convention out,
+                final String description) {
             super(clazz, in, out, description);
             this.out = out;
         }
@@ -60,7 +62,7 @@ public class GremlinRules {
                     "GremlinFilterRule");
         }
 
-        public RelNode convert(RelNode rel) {
+        public RelNode convert(final RelNode rel) {
             final LogicalFilter filter = (LogicalFilter) rel;
             final RelTraitSet traitSet = filter.getTraitSet().replace(out);
             return new GremlinFilter(

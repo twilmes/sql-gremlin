@@ -23,6 +23,7 @@ import java.util.List;
 
 /**
  * Created by twilmes on 10/10/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class TableConfig {
     private String name;
@@ -32,7 +33,7 @@ public class TableConfig {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -40,7 +41,7 @@ public class TableConfig {
         return columns;
     }
 
-    public void setColumns(List<TableColumn> columns) {
+    public void setColumns(final List<TableColumn> columns) {
         this.columns = columns;
     }
 }

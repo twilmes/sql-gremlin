@@ -26,24 +26,19 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.type.RelDataType;
-
 import java.util.List;
 
 /**
  * Created by twilmes on 11/22/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class GremlinTraversalScan extends AbstractRelNode implements GremlinTraversalRel {
     private static List<Object> rows;
 
-    public GremlinTraversalScan(RelOptCluster cluster, RelTraitSet traitSet, RelDataType rowType, List<Object> rows) {
+    public GremlinTraversalScan(final RelOptCluster cluster, final RelTraitSet traitSet, final RelDataType rowType, final List<Object> rows) {
         super(cluster, traitSet);
         this.rowType = rowType;
         GremlinTraversalScan.rows = rows;
-    }
-
-    @Override
-    public void implement(Implementor implementor) {
-        implementor.rows = rows;
     }
 
     public static Enumerable<Object[]> scan() {
@@ -52,5 +47,10 @@ public class GremlinTraversalScan extends AbstractRelNode implements GremlinTrav
                 return new GremlinEnumerator(rows);
             }
         };
+    }
+
+    @Override
+    public void implement(final Implementor implementor) {
+        implementor.rows = rows;
     }
 }

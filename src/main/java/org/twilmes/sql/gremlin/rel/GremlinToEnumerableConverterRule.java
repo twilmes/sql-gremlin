@@ -21,6 +21,7 @@ package org.twilmes.sql.gremlin.rel;
 
 /**
  * Created by twilmes on 9/25/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
@@ -41,8 +42,9 @@ public class GremlinToEnumerableConverterRule extends ConverterRule {
                 "GremlinToEnumerableConverterRule");
     }
 
-    @Override public RelNode convert(RelNode rel) {
-        RelTraitSet newTraitSet = rel.getTraitSet().replace(getOutConvention());
+    @Override
+    public RelNode convert(final RelNode rel) {
+        final RelTraitSet newTraitSet = rel.getTraitSet().replace(getOutConvention());
         return new GremlinToEnumerableConverter(rel.getCluster(), newTraitSet, rel);
     }
 }

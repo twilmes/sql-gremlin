@@ -24,21 +24,25 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Pair;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by twilmes on 9/25/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public interface GremlinRel extends RelNode {
-    void implement(Implementor implementor);
-
-    /** Calling convention for relational operations that occur in Gremlin. */
+    /**
+     * Calling convention for relational operations that occur in Gremlin.
+     */
     Convention CONVENTION = new Convention.Impl("GREMLIN", GremlinRel.class);
 
-    /** Callback for the implementation process that converts a tree of
-     * {@link GremlinRel} nodes into a Gremlin query. */
+    void implement(Implementor implementor);
+
+    /**
+     * Callback for the implementation process that converts a tree of
+     * {@link GremlinRel} nodes into a Gremlin query.
+     */
     class Implementor {
         final List<Pair<String, String>> list =
                 new ArrayList<Pair<String, String>>();
@@ -47,11 +51,11 @@ public interface GremlinRel extends RelNode {
         GremlinTable gremlinTable;
         RexNode filterRoot;
 
-        public void setFilter(RexNode filterRoot) {
+        public void setFilter(final RexNode filterRoot) {
             this.filterRoot = filterRoot;
         }
 
-        public void visitChild(int ordinal, RelNode input) {
+        public void visitChild(final int ordinal, final RelNode input) {
             assert ordinal == 0;
             ((GremlinRel) input).implement(this);
         }

@@ -20,12 +20,9 @@
 package org.twilmes.sql.gremlin.schema;
 
 import com.google.common.collect.ImmutableMap;
-import org.twilmes.sql.gremlin.rel.GremlinTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-
-
+import org.twilmes.sql.gremlin.rel.GremlinTable;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -34,11 +31,12 @@ import static java.util.stream.Collectors.toList;
 
 /**
  * Created by twilmes on 9/22/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class GremlinSchema extends AbstractSchema {
     private final SchemaConfig config;
 
-    public GremlinSchema(SchemaConfig config) {
+    public GremlinSchema(final SchemaConfig config) {
         this.config = config;
     }
 
@@ -49,16 +47,16 @@ public class GremlinSchema extends AbstractSchema {
 
     private Map<String, Table> buildSchemaFromConfig() {
         final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
-        for(TableConfig tableConfig : config.getTables()) {
+        for (final TableConfig tableConfig : config.getTables()) {
             final TableDef tableDef = new TableDef();
             tableDef.label = tableConfig.getName();
             tableDef.tableName = tableConfig.getName();
 
             // is this a vertex or edge table?
             TableRelationship relationship = null;
-            Optional<TableRelationship> optionalRelationship = config.
+            final Optional<TableRelationship> optionalRelationship = config.
                     getRelationships().stream().filter(rel -> rel.getEdgeLabel().equals(tableDef.label)).findFirst();
-            if(optionalRelationship.isPresent()) {
+            if (optionalRelationship.isPresent()) {
                 relationship = optionalRelationship.get();
                 tableDef.isVertex = false;
             } else {
@@ -75,28 +73,30 @@ public class GremlinSchema extends AbstractSchema {
             // if this is an edge, it'll be the edge id
             final String pkName = tableDef.label.toUpperCase() + "_ID";
             pk.setName(pkName);
-            if(tableDef.isVertex) {
+            if (tableDef.isVertex) {
                 pk.setType("long");
             } else {
                 pk.setType("string");
             }
             tableDef.columns.put(pkName, pk);
 
-            if(tableDef.isVertex) {
+            if (tableDef.isVertex) {
                 // get relationship info
                 final List<TableRelationship> outRelationships = config.getRelationships().
                         stream().filter(rel -> {
-                    return rel.getOutTable().equals(tableConfig.getName()) && rel.getFkTable().equals(rel.getOutTable());
+                    return rel.getOutTable().equals(tableConfig.getName()) &&
+                            rel.getFkTable().equals(rel.getOutTable());
                 }).collect(toList());
-                List<TableRelationship> inRelationships = config.getRelationships().
-                        stream().filter(rel -> rel.getInTable().equals(tableConfig.getName()) && rel.getFkTable().equals(rel.getInTable())).collect(toList());
+                final List<TableRelationship> inRelationships = config.getRelationships().
+                        stream().filter(rel -> rel.getInTable().equals(tableConfig.getName()) &&
+                        rel.getFkTable().equals(rel.getInTable())).collect(toList());
 
                 outRelationships.forEach(rel -> {
 //                    tableDef.outEdgeMap.put(rel.getEdgeLabel(), rel.getInTable());
                     // add fk
-                    TableColumn fk = new TableColumn();
-                    String fkName;
-                    if(rel.getInTable().equals(rel.getOutTable())) {
+                    final TableColumn fk = new TableColumn();
+                    final String fkName;
+                    if (rel.getInTable().equals(rel.getOutTable())) {
                         fkName = rel.getEdgeLabel().toUpperCase() + "_ID";
                     } else {
                         fkName = rel.getInTable().toUpperCase() + "_ID";
@@ -108,8 +108,8 @@ public class GremlinSchema extends AbstractSchema {
 
                 inRelationships.forEach(rel -> {
                     // add fk
-                    TableColumn fk = new TableColumn();
-                    String fkName = rel.getOutTable().toUpperCase() + "_ID";
+                    final TableColumn fk = new TableColumn();
+                    final String fkName = rel.getOutTable().toUpperCase() + "_ID";
                     fk.setName(fkName);
                     fk.setType("long");
                     tableDef.columns.put(fkName, fk);
