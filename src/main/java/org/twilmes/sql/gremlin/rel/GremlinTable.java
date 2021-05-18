@@ -19,10 +19,10 @@
 
 package org.twilmes.sql.gremlin.rel;
 
-import org.twilmes.sql.gremlin.schema.TableColumn;
-import org.twilmes.sql.gremlin.schema.TableDef;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
-import org.apache.calcite.linq4j.*;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
@@ -31,24 +31,26 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.util.Pair;
-
+import org.twilmes.sql.gremlin.schema.TableColumn;
+import org.twilmes.sql.gremlin.schema.TableDef;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Created by twilmes on 9/22/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class GremlinTable extends AbstractQueryableTable implements TranslatableTable {
     private final TableDef tableDef;
 
-    public GremlinTable(TableDef tableDef) {
+    public GremlinTable(final TableDef tableDef) {
         super(Object[].class);
         this.tableDef = tableDef;
     }
 
     @Override
-    public <T> Queryable<T> asQueryable(QueryProvider queryProvider, SchemaPlus schema, String tableName) {
+    public <T> Queryable<T> asQueryable(final QueryProvider queryProvider, final SchemaPlus schema, final String tableName) {
         return null;
     }
 
@@ -57,12 +59,12 @@ public class GremlinTable extends AbstractQueryableTable implements Translatable
     }
 
     public RelNode toRel(
-            RelOptTable.ToRelContext context,
-            RelOptTable relOptTable) {
+            final RelOptTable.ToRelContext context,
+            final RelOptTable relOptTable) {
         final RelOptCluster cluster = context.getCluster();
-        int fieldCount = tableDef.columns.size();
-        int[] fields = new int[fieldCount];
-        for(int i = 0;i < fieldCount; i++) {
+        final int fieldCount = tableDef.columns.size();
+        final int[] fields = new int[fieldCount];
+        for (int i = 0; i < fieldCount; i++) {
             fields[i] = i;
         }
         return new GremlinTableScan(cluster, cluster.traitSetOf(GremlinRel.CONVENTION),
@@ -74,11 +76,11 @@ public class GremlinTable extends AbstractQueryableTable implements Translatable
     }
 
     @Override
-    public RelDataType getRowType(RelDataTypeFactory relDataTypeFactory) {
-        List<String> names = new ArrayList<>();
-        List<RelDataType> types = new ArrayList<>();
+    public RelDataType getRowType(final RelDataTypeFactory relDataTypeFactory) {
+        final List<String> names = new ArrayList<>();
+        final List<RelDataType> types = new ArrayList<>();
 
-        for(Map.Entry<String, TableColumn> entry : tableDef.columns.entrySet()) {
+        for (final Map.Entry<String, TableColumn> entry : tableDef.columns.entrySet()) {
             names.add(entry.getKey());
             types.add(relDataTypeFactory.createJavaType(
                     getType(entry.getValue().getType())));
@@ -87,8 +89,8 @@ public class GremlinTable extends AbstractQueryableTable implements Translatable
         return relDataTypeFactory.createStructType(Pair.zip(names, types));
     }
 
-    private Class getType(String className) {
-        switch(className) {
+    private Class getType(final String className) {
+        switch (className) {
             case "string":
                 return String.class;
             case "integer":

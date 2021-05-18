@@ -20,23 +20,26 @@
 package org.twilmes.sql.gremlin.processor;
 
 import org.apache.calcite.rel.RelNode;
+import org.twilmes.sql.gremlin.processor.visitors.RelVisitor;
 
 /**
  * Does a post-order depth-first traversal of the Calcite operator tree.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class RelWalker {
-
     private final RelVisitor visitor;
 
-    public RelWalker(RelNode root, RelVisitor visitor) {
+    public RelWalker(final RelNode root, final RelVisitor visitor) {
         this.visitor = visitor;
         walk(root);
     }
 
-    private void walk(RelNode node) {
-        if (node == null) return;
+    private void walk(final RelNode node) {
+        if (node == null) {
+            return;
+        }
 
-        for (RelNode child : node.getInputs()) {
+        for (final RelNode child : node.getInputs()) {
             walk(child);
         }
 

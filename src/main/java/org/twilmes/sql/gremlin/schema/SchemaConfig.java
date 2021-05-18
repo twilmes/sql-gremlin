@@ -19,38 +19,17 @@
 
 package org.twilmes.sql.gremlin.schema;
 
-import java.util.HashMap;
+import lombok.Getter;
+import lombok.Setter;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Created by twilmes on 10/10/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
+@Getter
+@Setter
 public class SchemaConfig {
-    List<TableConfig> tables;
-    List<TableRelationship> relationships;
-
-    public List<TableConfig> getTables() {
-        return tables;
-    }
-
-    public void setTables(List<TableConfig> tables) {
-        this.tables = tables;
-    }
-
-    public List<TableRelationship> getRelationships() {
-        return relationships;
-    }
-
-    public void setRelationships(List<TableRelationship> relationships) {
-        this.relationships = relationships;
-    }
-
-    public Map<String, TableConfig> getTableMap() {
-        Map<String, TableConfig> tableMap = new HashMap<>();
-        for(TableConfig table : tables) {
-            tableMap.put(table.getName(), table);
-        }
-        return tableMap;
-    }
+    private List<TableConfig> tables;
+    private List<TableRelationship> relationships;
 }

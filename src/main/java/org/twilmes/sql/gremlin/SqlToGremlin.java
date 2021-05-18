@@ -17,8 +17,9 @@
  * under the License.
  */
 
-package org.twilmes.sql.gremlin.processor;
+package org.twilmes.sql.gremlin;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelTraitDef;
@@ -31,15 +32,19 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.tinkerpop.gremlin.process.traversal.Step;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.twilmes.sql.gremlin.processor.visitors.FieldMapVisitor;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.twilmes.sql.gremlin.processor.QueryPlanner;
+import org.twilmes.sql.gremlin.processor.RelWalker;
+import org.twilmes.sql.gremlin.processor.SingleQueryExecutor;
+import org.twilmes.sql.gremlin.processor.TraversalBuilder;
 import org.twilmes.sql.gremlin.processor.visitors.ScanVisitor;
-import org.twilmes.sql.gremlin.processor.visitors.TraversalVisitor;
 import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
 import org.twilmes.sql.gremlin.schema.GremlinSchema;
 import org.twilmes.sql.gremlin.schema.SchemaConfig;
 import org.twilmes.sql.gremlin.schema.TableDef;
 import org.twilmes.sql.gremlin.schema.TableUtil;
+import java.io.File;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -47,22 +52,29 @@ import java.util.Map;
 import static org.twilmes.sql.gremlin.processor.RelUtils.isConvertable;
 
 /**
- * Executes sql queries against a Gremlin
- * <p>
- * Created by twilmes on 12/5/15.
- * Modified by lyndonb-bq on 05/17/21.
+ * Created by lyndonb-bq on 05/17/21.
  */
-public class GremlinCompiler {
-
-    private final Graph graph;
+public class SqlToGremlin {
+    private final GraphTraversalSource g;
     private final SchemaConfig schemaConfig;
     private final FrameworkConfig frameworkConfig;
     private QueryPlanner queryPlanner;
 
-    public GremlinCompiler(final Graph graph, final SchemaConfig schemaConfig) {
-        this.graph = graph;
-        this.schemaConfig = schemaConfig;
-
+    public SqlToGremlin(final SchemaConfig schemaConfig, final GraphTraversalSource g) throws SQLException {
+        this.g = g;
+        if (schemaConfig == null) {
+            final ObjectMapper mapper = new ObjectMapper();
+            try {
+                // TODO AN-538 Schema support needs to be added here.
+                this.schemaConfig =
+                        mapper.readValue(new File("output.json"), SchemaConfig.class);
+                this.schemaConfig.getTables().forEach(t -> System.out.println(t.getName()));
+            } catch (final Exception e) {
+                throw new SQLException("Error reading the schema file.", e);
+            }
+        } else {
+            this.schemaConfig = schemaConfig;
+        }
         final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
         final List<RelTraitDef> traitDefs = new ArrayList<>();
         traitDefs.add(ConventionTraitDef.INSTANCE);
@@ -72,26 +84,23 @@ public class GremlinCompiler {
 
         frameworkConfig = Frameworks.newConfigBuilder()
                 .parserConfig(parserConfig)
-                .defaultSchema(rootSchema.add("gremlin", new GremlinSchema(schemaConfig)))
+                .defaultSchema(rootSchema.add("gremlin", new GremlinSchema(this.schemaConfig)))
                 .traitDefs(traitDefs)
                 .programs(Programs.sequence(Programs.ofRules(Programs.RULE_SET), Programs.CALC_PROGRAM))
                 .build();
     }
 
-    private RelNode getPlan(final String sql) {
-        return queryPlanner.plan(sql);
-    }
-
     public String explain(final String sql) {
         queryPlanner = new QueryPlanner(frameworkConfig);
-        final RelNode node = getPlan(sql);
+        final RelNode node = queryPlanner.plan(sql);
         return queryPlanner.explain(node);
     }
 
-    public List<Object> execute(final String sql) {
+    public SingleQueryExecutor.SqlGremlinQueryResult execute(final String sql) {
         queryPlanner = new QueryPlanner(frameworkConfig);
-        final RelNode node = getPlan(sql);
-        // determine if we need to break the logical plan off and run part via Gremlin & part Calcite
+        final RelNode node = queryPlanner.plan(sql);
+
+        // Determine if we need to break the logical plan off and run part via Gremlin & part Calcite
         RelNode root = node;
         if (!isConvertable(node)) {
             // go until we hit a converter to find the input
@@ -102,38 +111,37 @@ public class GremlinCompiler {
         }
 
         // Get all scan chunks.  A scan chunk is a table scan and any additional operators that we've
-        // pushed down like filters
+        // pushed down like filters.
         final ScanVisitor scanVisitor = new ScanVisitor();
         new RelWalker(root, scanVisitor);
         final Map<GremlinToEnumerableConverter, List<RelNode>> scanMap = scanVisitor.getScanMap();
 
-        // simple case, no joins
-        final GraphTraversal<?, ?> traversal;
-        final List<Object> rows;
+        // Simple case, no joins.
         if (scanMap.size() == 1) {
-            final GraphTraversal scan = TraversalBuilder.toTraversal(scanMap.values().iterator().next());
-            traversal = graph.traversal().V();
-            for (final Step step : (List<Step>) scan.asAdmin().getSteps()) {
+            final GraphTraversal<?, ?> scan = TraversalBuilder.toTraversal(scanMap.values().iterator().next());
+            final GraphTraversal<?, ?> traversal = g.V();
+            for (final Step<?, ?> step : scan.asAdmin().getSteps()) {
                 traversal.asAdmin().addStep(step);
             }
 
             final TableDef table = TableUtil.getTableDef(scanMap.values().iterator().next());
             final SingleQueryExecutor queryExec = new SingleQueryExecutor(node, traversal, table);
-            rows = queryExec.run();
+            return queryExec.handle();
         } else {
+            /*
             final FieldMapVisitor fieldMapper = new FieldMapVisitor();
             new RelWalker(root, fieldMapper);
-            final TraversalVisitor traversalVisitor = new TraversalVisitor(graph.traversal(),
-                    scanMap, fieldMapper.getFieldMap());
+            final TraversalVisitor traversalVisitor = new TraversalVisitor(g, scanMap, fieldMapper.getFieldMap());
             new RelWalker(root, traversalVisitor);
 
-            traversal = TraversalBuilder.buildMatch(graph.traversal(), traversalVisitor.getTableTraversalMap(),
+            traversal = TraversalBuilder.buildMatch(g, traversalVisitor.getTableTraversalMap(),
                     traversalVisitor.getJoinPairs(), schemaConfig, traversalVisitor.getTableIdConverterMap());
             final JoinQueryExecutor queryExec = new JoinQueryExecutor(node, fieldMapper.getFieldMap(), traversal,
                     traversalVisitor.getTableIdMap());
-            rows = queryExec.run();
+            rows = queryExec.run();*/
         }
 
-        return rows;
+        return null;
     }
+
 }

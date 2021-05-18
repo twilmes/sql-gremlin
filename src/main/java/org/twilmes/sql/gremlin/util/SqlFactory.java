@@ -22,12 +22,12 @@ package org.twilmes.sql.gremlin.util;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
-
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.tinkerpop.gremlin.structure.T.label;
 
 /**
+ * Modified by lyndonb-bq on 05/17/21.
  * Created by twilmes on 12/7/15.
  */
 public class SqlFactory {
@@ -36,41 +36,41 @@ public class SqlFactory {
         return createSpaceGraph(TinkerGraph.open());
     }
 
-    public static Graph createSpaceGraph(Graph graph) {
+    public static Graph createSpaceGraph(final Graph graph) {
         // companies
-        Vertex acmeSpaceCo = graph.addVertex(label, "company", "name", "Acme Space");
-        Vertex newFrontiers = graph.addVertex(label, "company", "name", "New Frontiers");
-        Vertex tomorrowUnlimited = graph.addVertex(label, "company", "name", "Tomorrow Unlimited");
-        Vertex spaceTruckers = graph.addVertex(label, "company", "name", "Space Truckers");
-        Vertex bankruptCo = graph.addVertex(label, "company", "name", "Bankrupt Co.");
+        final Vertex acmeSpaceCo = graph.addVertex(label, "company", "name", "Acme Space");
+        final Vertex newFrontiers = graph.addVertex(label, "company", "name", "New Frontiers");
+        final Vertex tomorrowUnlimited = graph.addVertex(label, "company", "name", "Tomorrow Unlimited");
+        final Vertex spaceTruckers = graph.addVertex(label, "company", "name", "Space Truckers");
+        final Vertex bankruptCo = graph.addVertex(label, "company", "name", "Bankrupt Co.");
 
         // planets
-        Vertex earth = graph.addVertex(label, "planet", "name", "earth");
-        Vertex mars = graph.addVertex(label, "planet", "name", "mars");
-        Vertex saturn = graph.addVertex(label, "planet", "name", "saturn");
-        Vertex jupiter = graph.addVertex(label, "planet", "name", "jupiter");
+        final Vertex earth = graph.addVertex(label, "planet", "name", "earth");
+        final Vertex mars = graph.addVertex(label, "planet", "name", "mars");
+        final Vertex saturn = graph.addVertex(label, "planet", "name", "saturn");
+        final Vertex jupiter = graph.addVertex(label, "planet", "name", "jupiter");
 
         // astronauts
-        Vertex tom = graph.addVertex(label, "person", "name", "Tom", "age", 35);
-        Vertex patty = graph.addVertex(label, "person", "name", "Patty", "age", 29);
-        Vertex phil = graph.addVertex(label, "person", "name", "Phil", "age", 30);
-        Vertex susan = graph.addVertex(label, "person", "name", "Susan", "age", 45);
-        Vertex juanita = graph.addVertex(label, "person", "name", "Juanita", "age", 50);
-        Vertex pavel = graph.addVertex(label, "person", "name", "Pavel", "age", 30);
+        final Vertex tom = graph.addVertex(label, "person", "name", "Tom", "age", 35);
+        final Vertex patty = graph.addVertex(label, "person", "name", "Patty", "age", 29);
+        final Vertex phil = graph.addVertex(label, "person", "name", "Phil", "age", 30);
+        final Vertex susan = graph.addVertex(label, "person", "name", "Susan", "age", 45);
+        final Vertex juanita = graph.addVertex(label, "person", "name", "Juanita", "age", 50);
+        final Vertex pavel = graph.addVertex(label, "person", "name", "Pavel", "age", 30);
 
         // spaceships
-        Vertex spaceship1 = graph.addVertex(label, "spaceship", "name", "Ship 1", "model", "delta 1");
-        Vertex spaceship2 = graph.addVertex(label, "spaceship", "name", "Ship 2", "model", "delta 1");
-        Vertex spaceship3 = graph.addVertex(label, "spaceship", "name", "Ship 3", "model", "delta 2");
-        Vertex spaceship4 = graph.addVertex(label, "spaceship", "name", "Ship 4", "model", "delta 3");
+        final Vertex spaceship1 = graph.addVertex(label, "spaceship", "name", "Ship 1", "model", "delta 1");
+        final Vertex spaceship2 = graph.addVertex(label, "spaceship", "name", "Ship 2", "model", "delta 1");
+        final Vertex spaceship3 = graph.addVertex(label, "spaceship", "name", "Ship 3", "model", "delta 2");
+        final Vertex spaceship4 = graph.addVertex(label, "spaceship", "name", "Ship 4", "model", "delta 3");
 
         // satellite
-        Vertex satellite1 = graph.addVertex(label, "satellite", "name", "sat1");
-        Vertex satellite2 = graph.addVertex(label, "satellite", "name", "sat2");
-        Vertex satellite3 = graph.addVertex(label, "satellite", "name", "sat3");
+        final Vertex satellite1 = graph.addVertex(label, "satellite", "name", "sat1");
+        final Vertex satellite2 = graph.addVertex(label, "satellite", "name", "sat2");
+        final Vertex satellite3 = graph.addVertex(label, "satellite", "name", "sat3");
 
         // rocket fuel
-        Vertex s1Fuel = graph.addVertex(label, "sensor", "type", "rocket fuel");
+        final Vertex s1Fuel = graph.addVertex(label, "sensor", "type", "rocket fuel");
 //        Vertex s2Fuel = graph.addVertex(label, "sensor", "type", "rocket fuel");
 //        Vertex s3Fuel = graph.addVertex(label, "sensor", "type", "rocket fuel");
 //        Vertex s4Fuel = graph.addVertex(label, "sensor", "type", "rocket fuel");
@@ -116,8 +116,9 @@ public class SqlFactory {
 
         // fuel sensor readings
         long timestamp = 1765258774000L;
-        for(int i = 0; i < 10; i++) {
-            Vertex s1Reading = graph.addVertex(label, "sensorReading", "timestamp", timestamp, "date", timestamp, "value", 10.0);
+        for (int i = 0; i < 10; i++) {
+            final Vertex s1Reading =
+                    graph.addVertex(label, "sensorReading", "timestamp", timestamp, "date", timestamp, "value", 10.0);
             s1Fuel.addEdge("hasReading", s1Reading);
             timestamp += TimeUnit.MINUTES.toMillis(5);
         }

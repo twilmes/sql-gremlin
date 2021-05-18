@@ -19,8 +19,13 @@
 
 package org.twilmes.sql.gremlin.processor;
 
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Pair;
+import org.apache.tinkerpop.gremlin.process.traversal.Step;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.twilmes.sql.gremlin.ParseException;
 import org.twilmes.sql.gremlin.rel.GremlinFilter;
@@ -31,12 +36,6 @@ import org.twilmes.sql.gremlin.schema.LabelUtil;
 import org.twilmes.sql.gremlin.schema.SchemaConfig;
 import org.twilmes.sql.gremlin.schema.TableDef;
 import org.twilmes.sql.gremlin.util.FilterTranslator;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rex.RexNode;
-import org.apache.tinkerpop.gremlin.process.traversal.Step;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,25 +45,27 @@ import static org.twilmes.sql.gremlin.schema.TableUtil.getTableDef;
 
 /**
  * Builds a Gremlin traversal given a list of supported Rel nodes.
- *
+ * <p>
  * Created by twilmes on 12/4/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class TraversalBuilder {
 
-    public static GraphTraversal toTraversal(List<RelNode> relList) {
-        final GraphTraversal traversal = __.identity();
+    public static GraphTraversal<?, ?> toTraversal(final List<RelNode> relList) {
+        final GraphTraversal<?, ?> traversal = __.identity();
         TableDef tableDef = null;
-        for(RelNode rel : relList) {
-            if(rel instanceof GremlinTableScan) {
-                GremlinTableScan tableScan = (GremlinTableScan) rel;
+        for (final RelNode rel : relList) {
+            if (rel instanceof GremlinTableScan) {
+                final GremlinTableScan tableScan = (GremlinTableScan) rel;
                 tableDef = tableScan.getGremlinTable().getTableDef();
                 traversal.hasLabel(tableDef.label);
-            } if(rel instanceof GremlinFilter) {
-                GremlinFilter filter = (GremlinFilter) rel;
-                RexNode condition = filter.getCondition();
-                FilterTranslator translator = new FilterTranslator(tableDef, filter.getRowType().getFieldNames());
-                GraphTraversal predicates = translator.translateMatch(condition);
-                for(Step step : (List<Step>)predicates.asAdmin().getSteps()) {
+            }
+            if (rel instanceof GremlinFilter) {
+                final GremlinFilter filter = (GremlinFilter) rel;
+                final RexNode condition = filter.getCondition();
+                final FilterTranslator translator = new FilterTranslator(tableDef, filter.getRowType().getFieldNames());
+                final GraphTraversal<?, ?> predicates = translator.translateMatch(condition);
+                for (final Step<?, ?> step : predicates.asAdmin().getSteps()) {
                     traversal.asAdmin().addStep(step);
                 }
             }
@@ -72,20 +73,23 @@ public class TraversalBuilder {
         return traversal;
     }
 
-    public static GraphTraversal<?, ?> buildMatch(GraphTraversalSource g, Map<String, GraphTraversal<?, ?>> tableIdTraversalMap,
-                                                  List<Pair<String, String>> joinPairs, SchemaConfig schemaConfig,
-                                                  Map<String, GremlinToEnumerableConverter> tableIdConverterMap) {
+    public static GraphTraversal<?, ?> buildMatch(final GraphTraversalSource g,
+                                                  final Map<String, GraphTraversal<?, ?>> tableIdTraversalMap,
+                                                  final List<Pair<String, String>> joinPairs,
+                                                  final SchemaConfig schemaConfig,
+                                                  final Map<String, GremlinToEnumerableConverter> tableIdConverterMap) {
         final GraphTraversal<?, ?> startTraversal = g.V();
         final List<GraphTraversal<?, ?>> matchTraversals = new ArrayList<>();
 
         final ArrayList<Pair<String, String>> sorted = new ArrayList<>();
-        if(joinPairs.size() > 1) {
+        if (joinPairs.size() > 1) {
             // sort join pairs
             Pair<String, String> startPair = joinPairs.get(0);
-            int pairs = joinPairs.size();
+            final int pairs = joinPairs.size();
             while (sorted.size() < pairs - 1) {
-                String end = startPair.getValue();
-                Optional<Pair<String, String>> next = joinPairs.stream().filter(p -> p.getKey().equals(end)).findFirst();
+                final String end = startPair.getValue();
+                Optional<Pair<String, String>> next =
+                        joinPairs.stream().filter(p -> p.getKey().equals(end)).findFirst();
                 if (next.isPresent()) {
                     sorted.add(next.get());
                     startPair = next.get();
@@ -123,7 +127,7 @@ public class TraversalBuilder {
             // find the first pair that starts with a vertex
             int startIndex = 0;
             for (; startIndex < sorted.size(); startIndex++) {
-                String startId = sorted.get(startIndex).getKey();
+                final String startId = sorted.get(startIndex).getKey();
                 if (getTableDef(tableIdConverterMap.get(startId)).isVertex) {
                     break;
                 }
@@ -131,14 +135,14 @@ public class TraversalBuilder {
         } else {
             // flip the pair if an edge is on the left...
             Pair<String, String> pair = joinPairs.get(0);
-            if(!getTableDef(tableIdConverterMap.get(pair.getKey())).isVertex) {
+            if (!getTableDef(tableIdConverterMap.get(pair.getKey())).isVertex) {
                 pair = new Pair<>(pair.getValue(), pair.getKey());
             }
             sorted.add(pair);
         }
         boolean first = true;
         // build match traversals
-        for(Pair<String, String> current : sorted) {
+        for (final Pair<String, String> current : sorted) {
             final String leftId = current.getKey();
             final String rightId = current.getValue();
             final TableDef leftTableDef = getTableDef(tableIdConverterMap.get(leftId));
@@ -146,23 +150,24 @@ public class TraversalBuilder {
 
             final LabelInfo labelInfo = LabelUtil.getLabel(leftTableDef, rightTableDef, schemaConfig);
 
-            GraphTraversal<?, ?> connectingTraversal;
-            if(labelInfo.getDirection().equals(Direction.OUT)) {
-                if(leftTableDef.isVertex && rightTableDef.isVertex) {
+            final GraphTraversal<?, ?> connectingTraversal;
+            // TODO: This logic is much more complicated than it needs to be, simplify it.
+            if (labelInfo.getDirection().equals(Direction.OUT)) {
+                if (leftTableDef.isVertex && rightTableDef.isVertex) {
                     connectingTraversal = __.out(labelInfo.getLabel());
-                } else if(leftTableDef.isVertex && !rightTableDef.isVertex) {
+                } else if (leftTableDef.isVertex && !rightTableDef.isVertex) {
                     connectingTraversal = __.outE(labelInfo.getLabel());
-                } else if(!leftTableDef.isVertex && rightTableDef.isVertex) {
+                } else if (!leftTableDef.isVertex && rightTableDef.isVertex) {
                     connectingTraversal = __.inV();
                 } else {
                     throw new ParseException("Illegal join of two edge tables.");
                 }
             } else {
-                if(leftTableDef.isVertex && rightTableDef.isVertex) {
+                if (leftTableDef.isVertex && rightTableDef.isVertex) {
                     connectingTraversal = __.in(labelInfo.getLabel());
-                } else if(leftTableDef.isVertex && !rightTableDef.isVertex) {
+                } else if (leftTableDef.isVertex && !rightTableDef.isVertex) {
                     connectingTraversal = __.inE(labelInfo.getLabel());
-                } else if(!leftTableDef.isVertex && rightTableDef.isVertex) {
+                } else if (!leftTableDef.isVertex && rightTableDef.isVertex) {
                     connectingTraversal = __.outV();
                 } else {
                     throw new ParseException("Illegal join of two edge tables.");
@@ -170,7 +175,7 @@ public class TraversalBuilder {
             }
             addTraversal(connectingTraversal, tableIdTraversalMap.get(rightId).as(rightId));
 
-            if(first) {
+            if (first) {
                 addTraversal(startTraversal, tableIdTraversalMap.get(leftId));
                 first = false;
             }
@@ -178,11 +183,12 @@ public class TraversalBuilder {
             matchTraversals.add(addTraversal(__.as(leftId), connectingTraversal));
         }
 
-        return startTraversal.match(matchTraversals.toArray(new GraphTraversal<?, ?>[matchTraversals.size()]));
+        return startTraversal.match(matchTraversals.toArray(new GraphTraversal<?, ?>[0]));
     }
 
-    public static GraphTraversal addTraversal(GraphTraversal<?, ?> traversal, GraphTraversal<?, ?> addMe) {
-        for(Step step : addMe.asAdmin().getSteps()) {
+    public static GraphTraversal<?, ?> addTraversal(final GraphTraversal<?, ?> traversal,
+                                                    final GraphTraversal<?, ?> addMe) {
+        for (final Step<?, ?> step : addMe.asAdmin().getSteps()) {
             traversal.asAdmin().addStep(step);
         }
         return traversal;

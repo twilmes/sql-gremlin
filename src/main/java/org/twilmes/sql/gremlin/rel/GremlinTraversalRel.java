@@ -21,25 +21,25 @@ package org.twilmes.sql.gremlin.rel;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.rel.RelNode;
-
 import java.util.List;
 
 /**
  * Created by twilmes on 11/26/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public interface GremlinTraversalRel extends RelNode {
-
-    void implement(Implementor implementor);
 
     /**
      * Calling convention for relational operations that occur in Graph.
      */
     Convention CONVENTION = new Convention.Impl("TRAVERSAL", GremlinTraversalRel.class);
 
+    void implement(Implementor implementor);
+
     class Implementor {
         List<Object> rows;
 
-        public void visitChild(int ordinal, RelNode input) {
+        public void visitChild(final int ordinal, final RelNode input) {
             assert ordinal == 0;
             ((GremlinTraversalRel) input).implement(this);
         }

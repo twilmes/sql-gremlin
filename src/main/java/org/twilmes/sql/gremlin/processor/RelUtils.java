@@ -27,15 +27,17 @@ import org.apache.calcite.rel.RelNode;
 
 /**
  * Created by twilmes on 12/8/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class RelUtils {
 
     /**
      * Is this a RelNode we can convert into Gremlin?
+     *
      * @param node the node to check
      * @return true if a convert operation is supported
      */
-    public static Boolean isConvertable(RelNode node) {
+    public static Boolean isConvertable(final RelNode node) {
         return !(node instanceof EnumerableAggregate || node instanceof EnumerableCalc
                 || node instanceof EnumerableLimit || node instanceof EnumerableSort);
     }

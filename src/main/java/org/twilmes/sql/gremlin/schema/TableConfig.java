@@ -19,28 +19,17 @@
 
 package org.twilmes.sql.gremlin.schema;
 
+import lombok.Getter;
+import lombok.Setter;
 import java.util.List;
 
 /**
  * Created by twilmes on 10/10/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
+@Getter
+@Setter
 public class TableConfig {
     private String name;
     private List<TableColumn> columns;
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public List<TableColumn> getColumns() {
-        return columns;
-    }
-
-    public void setColumns(List<TableColumn> columns) {
-        this.columns = columns;
-    }
 }

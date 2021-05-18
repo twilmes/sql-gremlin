@@ -21,8 +21,6 @@ package org.twilmes.sql.gremlin.util;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import org.twilmes.sql.gremlin.schema.TableDef;
-import org.twilmes.sql.gremlin.schema.TableUtil;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -34,20 +32,22 @@ import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.T;
-
+import org.twilmes.sql.gremlin.schema.TableDef;
+import org.twilmes.sql.gremlin.schema.TableUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.has;
-
 /**
  * This class builds heavily upon Apache Calcite's Mongo adapter Translator class.  It just has a few tweaks to
  * do predicate conversions to Gremlin.  Any bugs are my own and not in the original!
  *
  * @see <a href="https://github.com/apache/calcite/blob/master/mongodb/src/main/java/org/apache/calcite/adapter/mongodb/MongoFilter.java">Calcite Mongo Translator</a>
+ * <p>
+ * Created by twilmes on xx/xx/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class FilterTranslator {
     final JsonBuilder builder = new JsonBuilder();
@@ -56,67 +56,70 @@ public class FilterTranslator {
     private final List<String> fieldNames;
     private final TableDef tableDef;
 
-    public FilterTranslator(TableDef tableDef, List<String> fieldNames) {
+    public FilterTranslator(final TableDef tableDef, final List<String> fieldNames) {
         this.fieldNames = fieldNames;
         this.tableDef = tableDef;
     }
 
-    public GraphTraversal translateMatch(RexNode condition) {
-        GraphTraversal traversal = translateOr(condition);
-        return traversal;
+    private static Object literalValue(final RexLiteral literal) {
+        return literal.getValue2();
     }
 
-    private GraphTraversal translateOr(RexNode condition) {
-        List<GraphTraversal> list = new ArrayList<>();
-        for (RexNode node : RelOptUtil.disjunctions(condition)) {
+    public GraphTraversal<?, ?> translateMatch(final RexNode condition) {
+        return translateOr(condition);
+    }
+
+    private GraphTraversal<?, ?> translateOr(final RexNode condition) {
+        final List<GraphTraversal> list = new ArrayList<>();
+        for (final RexNode node : RelOptUtil.disjunctions(condition)) {
             list.addAll(translateAnd(node));
         }
-        switch (list.size()) {
-            case 1:
-                return list.get(0);
-            default:
-                Map<String, Object> map = builder.map();
-                map.put("$or", list);
-                return __.__().or(list.toArray(new GraphTraversal[list.size()]));
+        if (list.size() == 1) {
+            return list.get(0);
         }
+        final Map<String, Object> map = builder.map();
+        map.put("$or", list);
+        return __.__().or(list.toArray(new GraphTraversal[0]));
     }
 
-    /** Translates a condition that may be an AND of other conditions. Gathers
-     * together conditions that apply to the same field. */
-    private List<GraphTraversal> translateAnd(RexNode node0) {
+    /**
+     * Translates a condition that may be an AND of other conditions. Gathers
+     * together conditions that apply to the same field.
+     */
+    private List<GraphTraversal<?, ?>> translateAnd(final RexNode node0) {
         eqMap.clear();
         multimap.clear();
-        for (RexNode node : RelOptUtil.conjunctions(node0)) {
+        for (final RexNode node : RelOptUtil.conjunctions(node0)) {
             translateMatch2(node);
         }
-        Map<String, Object> map = builder.map();
-        for (Map.Entry<String, RexLiteral> entry : eqMap.entrySet()) {
+        final Map<String, Object> map = builder.map();
+        for (final Map.Entry<String, RexLiteral> entry : eqMap.entrySet()) {
             multimap.removeAll(entry.getKey());
             map.put(entry.getKey(), literalValue(entry.getValue()));
         }
-        for (Map.Entry<String, Collection<Pair<String, RexLiteral>>> entry
+        for (final Map.Entry<String, Collection<Pair<String, RexLiteral>>> entry
                 : multimap.asMap().entrySet()) {
-            Map<String, Object> map2 = builder.map();
-            for (Pair<String, RexLiteral> s : entry.getValue()) {
+            final Map<String, Object> map2 = builder.map();
+            for (final Pair<String, RexLiteral> s : entry.getValue()) {
                 addPredicate(map2, s.left, literalValue(s.right));
             }
             map.put(entry.getKey(), map2);
         }
 
-        List<GraphTraversal> traversals = new ArrayList<>();
-        GraphTraversal andTraversal = __.identity();
+        final List<GraphTraversal<?, ?>> traversals = new ArrayList<>();
+        final GraphTraversal<?, ?> andTraversal = __.identity();
         // process map
-        for(Map.Entry<String, Object> entry : map.entrySet()) {
-            String fieldName = entry.getKey().toLowerCase();
+        for (final Map.Entry<String, Object> entry : map.entrySet()) {
+            final String fieldName = entry.getKey().toLowerCase();
             Object value = entry.getValue();
-            if(value instanceof Map) {
-                Map<String, Object> mapValue = (Map) value;
-                for(Map.Entry<String, Object> valEntry : mapValue.entrySet()) {
-                    String op = valEntry.getKey();
+            if (value instanceof Map) {
+                final Map<String, Object> mapValue = (Map) value;
+                for (final Map.Entry<String, Object> valEntry : mapValue.entrySet()) {
+                    final String op = valEntry.getKey();
                     Object val = valEntry.getValue();
                     val = TableUtil.convertType(val, tableDef.getColumn(fieldName));
-                    P predicate = null;
-                    switch(op) {
+                    P<?> predicate = null;
+                    switch (op) {
                         case "$gt":
                             predicate = P.gt(val);
                             break;
@@ -135,10 +138,10 @@ public class FilterTranslator {
                         default:
                             break;
                     }
-                    if(fieldName.endsWith("_id")) {
+                    if (fieldName.endsWith("_id")) {
                         andTraversal.has(T.id, predicate);
                     } else {
-                        String propertyKey = TableUtil.getProperty(tableDef, fieldName);
+                        final String propertyKey = TableUtil.getProperty(tableDef, fieldName);
                         andTraversal.has(propertyKey, predicate);
                     }
                 }
@@ -146,7 +149,7 @@ public class FilterTranslator {
                 if (fieldName.endsWith("_id")) {
                     andTraversal.has(T.id, value);
                 } else {
-                    String propertyKey = TableUtil.getProperty(tableDef, fieldName);
+                    final String propertyKey = TableUtil.getProperty(tableDef, fieldName);
                     value = TableUtil.convertType(value, tableDef.getColumn(fieldName));
                     andTraversal.has(propertyKey, value);
                 }
@@ -157,20 +160,21 @@ public class FilterTranslator {
         return traversals;
     }
 
-    private void addPredicate(Map<String, Object> map, String op, Object v) {
+    private void addPredicate(final Map<String, Object> map, final String op, final Object v) {
         if (map.containsKey(op) && stronger(op, map.get(op), v)) {
             return;
         }
         map.put(op, v);
     }
 
-    /** Returns whether {@code v0} is a stronger value for operator {@code key}
+    /**
+     * Returns whether {@code v0} is a stronger value for operator {@code key}
      * than {@code v1}.
      *
      * <p>For example, {@code stronger("$lt", 100, 200)} returns true, because
      * "&lt; 100" is a more powerful condition than "&lt; 200".
      */
-    private boolean stronger(String key, Object v0, Object v1) {
+    private boolean stronger(final String key, final Object v0, final Object v1) {
         if (key.equals("$lt") || key.equals("$lte")) {
             if (v0 instanceof Number && v1 instanceof Number) {
                 return ((Number) v0).doubleValue() < ((Number) v1).doubleValue();
@@ -185,11 +189,7 @@ public class FilterTranslator {
         return false;
     }
 
-    private static Object literalValue(RexLiteral literal) {
-        return literal.getValue2();
-    }
-
-    private Void translateMatch2(RexNode node) {
+    private Void translateMatch2(final RexNode node) {
         switch (node.getKind()) {
             case EQUALS:
                 return translateBinary(null, null, (RexCall) node);
@@ -208,9 +208,11 @@ public class FilterTranslator {
         }
     }
 
-    /** Translates a call to a binary operator, reversing arguments if
-     * necessary. */
-    private Void translateBinary(String op, String rop, RexCall call) {
+    /**
+     * Translates a call to a binary operator, reversing arguments if
+     * necessary.
+     */
+    private Void translateBinary(final String op, final String rop, final RexCall call) {
         final RexNode left = call.operands.get(0);
         final RexNode right = call.operands.get(1);
         boolean b = translateBinary2(op, left, right);
@@ -224,9 +226,11 @@ public class FilterTranslator {
         throw new AssertionError("cannot translate op " + op + " call " + call);
     }
 
-    /** Translates a call to a binary operator. Returns whether successful. */
-    private boolean translateBinary2(String op, RexNode left, RexNode right) {
-        RexLiteral rightLiteral;
+    /**
+     * Translates a call to a binary operator. Returns whether successful.
+     */
+    private boolean translateBinary2(final String op, final RexNode left, final RexNode right) {
+        final RexLiteral rightLiteral;
         switch (right.getKind()) {
             case CAST:
                 rightLiteral = (RexLiteral) ((RexCall) right).getOperands().get(0);
@@ -241,7 +245,7 @@ public class FilterTranslator {
         switch (left.getKind()) {
             case INPUT_REF:
                 final RexInputRef left1 = (RexInputRef) left;
-                String name = fieldNames.get(left1.getIndex());
+                final String name = fieldNames.get(left1.getIndex());
                 translateOp2(op, name, rightLiteral);
                 return true;
             case CAST:
@@ -253,7 +257,7 @@ public class FilterTranslator {
         }
     }
 
-    private void translateOp2(String op, String name, RexLiteral right) {
+    private void translateOp2(final String op, final String name, final RexLiteral right) {
         if (op == null) {
             // E.g.: name = 'George'
             eqMap.put(name, right);

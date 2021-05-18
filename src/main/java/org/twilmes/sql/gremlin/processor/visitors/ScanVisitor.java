@@ -17,11 +17,11 @@
  * under the License.
  */
 
-package org.twilmes.sql.gremlin.processor;
+package org.twilmes.sql.gremlin.processor.visitors;
 
-import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
+import lombok.Getter;
 import org.apache.calcite.rel.RelNode;
-
+import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,19 +29,16 @@ import java.util.Map;
 
 /**
  * Created by twilmes on 11/28/15.
+ * Modified by lyndonb-bq on 05/17/21.
  */
 public class ScanVisitor implements RelVisitor {
-
+    @Getter
+    private final Map<GremlinToEnumerableConverter, List<RelNode>> scanMap = new HashMap<>();
     private List<RelNode> stack = new ArrayList<>();
-    private Map<GremlinToEnumerableConverter, List<RelNode>> scanMap = new HashMap<>();
-
-    public Map<GremlinToEnumerableConverter, List<RelNode>> getScans() {
-        return scanMap;
-    }
 
     @Override
-    public void visit(RelNode node) {
-        if(node instanceof GremlinToEnumerableConverter) {
+    public void visit(final RelNode node) {
+        if (node instanceof GremlinToEnumerableConverter) {
             scanMap.put((GremlinToEnumerableConverter) node, stack);
             stack = new ArrayList<>();
             return;
