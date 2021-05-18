@@ -15,11 +15,10 @@ import org.apache.tinkerpop.gremlin.process.traversal.Step;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.twilmes.sql.gremlin.processor.QueryPlanner;
-import org.twilmes.sql.gremlin.processor.RelUtils;
 import org.twilmes.sql.gremlin.processor.RelWalker;
-import org.twilmes.sql.gremlin.processor.visitors.ScanVisitor;
 import org.twilmes.sql.gremlin.processor.SingleQueryExecutor;
 import org.twilmes.sql.gremlin.processor.TraversalBuilder;
+import org.twilmes.sql.gremlin.processor.visitors.ScanVisitor;
 import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
 import org.twilmes.sql.gremlin.schema.GremlinSchema;
 import org.twilmes.sql.gremlin.schema.SchemaConfig;
@@ -84,12 +83,12 @@ public class SqlToGremlin {
 
         // Determine if we need to break the logical plan off and run part via Gremlin & part Calcite
         RelNode root = node;
-        if(!isConvertable(node)) {
+        if (!isConvertable(node)) {
             // go until we hit a converter to find the input
             root = root.getInput(0);
-            while(!isConvertable(root)) {
+            while (!isConvertable(root)) {
                 root = root.getInput(0);
-            };
+            }
         }
 
         // Get all scan chunks.  A scan chunk is a table scan and any additional operators that we've
