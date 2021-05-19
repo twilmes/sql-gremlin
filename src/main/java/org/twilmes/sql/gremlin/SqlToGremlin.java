@@ -68,7 +68,6 @@ public class SqlToGremlin {
                 // TODO AN-538 Schema support needs to be added here.
                 this.schemaConfig =
                         mapper.readValue(new File("output.json"), SchemaConfig.class);
-                this.schemaConfig.getTables().forEach(t -> System.out.println(t.getName()));
             } catch (final Exception e) {
                 throw new SQLException("Error reading the schema file.", e);
             }

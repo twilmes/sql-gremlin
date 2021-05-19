@@ -192,7 +192,7 @@ public class SingleQueryExecutor {
                     (EnumerableRel) node, EnumerableRel.Prefer.ARRAY);
             final Enumerable<Object> enumerable = bindable.bind(null);
             final List<Object> rowResults = enumerable.toList();
-            result = new SqlGremlinQueryResult(fieldNames, rowResults);
+            result = new SqlGremlinQueryResult(node.getRowType().getFieldNames(), rowResults);
         }
         return result;
     }
