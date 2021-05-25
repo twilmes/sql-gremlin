@@ -58,7 +58,6 @@ public class SqlToGremlin {
     private final GraphTraversalSource g;
     private final SchemaConfig schemaConfig;
     private final FrameworkConfig frameworkConfig;
-    private QueryPlanner queryPlanner;
 
     public SqlToGremlin(final SchemaConfig schemaConfig, final GraphTraversalSource g) throws SQLException {
         this.g = g;
@@ -90,13 +89,13 @@ public class SqlToGremlin {
     }
 
     public String explain(final String sql) {
-        queryPlanner = new QueryPlanner(frameworkConfig);
+        final QueryPlanner queryPlanner = new QueryPlanner(frameworkConfig);
         final RelNode node = queryPlanner.plan(sql);
         return queryPlanner.explain(node);
     }
 
     public SingleQueryExecutor.SqlGremlinQueryResult execute(final String sql) {
-        queryPlanner = new QueryPlanner(frameworkConfig);
+        final QueryPlanner queryPlanner = new QueryPlanner(frameworkConfig);
         final RelNode node = queryPlanner.plan(sql);
 
         // Determine if we need to break the logical plan off and run part via Gremlin & part Calcite

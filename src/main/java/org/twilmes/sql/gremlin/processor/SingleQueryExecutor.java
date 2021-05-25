@@ -19,6 +19,7 @@
 
 package org.twilmes.sql.gremlin.processor;
 
+import lombok.Getter;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpretable;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.linq4j.Enumerable;
@@ -32,9 +33,11 @@ import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyProperty;
 import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
 import org.twilmes.sql.gremlin.rel.GremlinTraversalScan;
 import org.twilmes.sql.gremlin.rel.GremlinTraversalToEnumerableRelConverter;
+import org.twilmes.sql.gremlin.schema.TableColumn;
 import org.twilmes.sql.gremlin.schema.TableDef;
 import org.twilmes.sql.gremlin.schema.TableUtil;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -146,7 +149,6 @@ public class SingleQueryExecutor {
                 parent = input;
             }
             final RelDataType rowType = input.getRowType();
-
             final List<String> fieldNames = rowType.getFieldNames();
 
             final List<Map<Object, Object>> results = traversal.valueMap().with(WithOptions.tokens).toList();
@@ -181,37 +183,45 @@ public class SingleQueryExecutor {
             }
 
             final GremlinTraversalScan traversalScan =
-                    new GremlinTraversalScan(input.getCluster(), input.getTraitSet(),
-                            rowType, rows);
+                    new GremlinTraversalScan(input.getCluster(), input.getTraitSet(), rowType, rows);
 
             final GremlinTraversalToEnumerableRelConverter converter =
-                    new GremlinTraversalToEnumerableRelConverter(input.getCluster(),
-                            input.getTraitSet(), traversalScan, rowType);
+                    new GremlinTraversalToEnumerableRelConverter(input.getCluster(), input.getTraitSet(), traversalScan,
+                            rowType);
             parent.replaceInput(0, converter);
-            final Bindable bindable = EnumerableInterpretable.toBindable(null, null,
-                    (EnumerableRel) node, EnumerableRel.Prefer.ARRAY);
+
+            final Bindable bindable =
+                    EnumerableInterpretable.toBindable(null, null, (EnumerableRel) node, EnumerableRel.Prefer.ARRAY);
             final Enumerable<Object> enumerable = bindable.bind(null);
+
             final List<Object> rowResults = enumerable.toList();
-            result = new SqlGremlinQueryResult(node.getRowType().getFieldNames(), rowResults);
+            result = new SqlGremlinQueryResult(fieldNames, rowResults, table);
         }
         return result;
     }
 
-    public class SqlGremlinQueryResult {
-        List<String> columns;
-        List<Object> rows;
+    @Getter
+    public static class SqlGremlinQueryResult {
+        private final List<String> columns;
+        private final List<String> columnTypes = new ArrayList<>();
+        private final List<List<Object>> rows = new ArrayList<>();
 
-        SqlGremlinQueryResult(final List<String> columns, final List<Object> rows) {
+        SqlGremlinQueryResult(final List<String> columns, final List<Object> rows, final TableDef tableConfig) {
             this.columns = columns;
-            this.rows = rows;
-        }
+            for (final Object row : rows) {
+                final List<Object> convertedRow = new ArrayList<>();
+                if (row instanceof Object[]) {
+                    convertedRow.addAll(Arrays.asList((Object[]) row));
+                } else if (row != null) {
+                    convertedRow.add(row);
+                }
+                this.rows.add(convertedRow);
+            }
 
-        public List<String> getColumns() {
-            return columns;
-        }
-
-        public List<Object> getRows() {
-            return rows;
+            for (final String column : columns) {
+                final TableColumn tableColumn = tableConfig.columns.getOrDefault(column, new TableColumn());
+                columnTypes.add((tableColumn.getType() == null) ? "string" : tableColumn.getType());
+            }
         }
     }
 }
