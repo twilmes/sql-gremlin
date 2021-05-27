@@ -19,8 +19,9 @@
 
 package org.twilmes.sql.gremlin.processor;
 
+import com.google.common.collect.ImmutableMap;
+import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpretable;
-import org.apache.calcite.adapter.enumerable.EnumerableJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.rel.RelNode;
@@ -52,12 +53,12 @@ import static org.twilmes.sql.gremlin.processor.RelUtils.isConvertable;
 public class JoinQueryExecutor {
 
     private final RelNode node;
-    private final Map<EnumerableJoin, Map<String, GremlinToEnumerableConverter>> fieldMap;
+    private final Map<EnumerableHashJoin, Map<String, GremlinToEnumerableConverter>> fieldMap;
     private final GraphTraversal<?, ?> traversal;
     private final Map<GremlinToEnumerableConverter, String> tableIdMap;
 
     public JoinQueryExecutor(final RelNode node,
-                             final Map<EnumerableJoin, Map<String, GremlinToEnumerableConverter>> fieldMap,
+                             final Map<EnumerableHashJoin, Map<String, GremlinToEnumerableConverter>> fieldMap,
                              final GraphTraversal<?, ?> traversal,
                              final Map<GremlinToEnumerableConverter, String> tableIdMap) {
         this.node = node;
@@ -72,7 +73,7 @@ public class JoinQueryExecutor {
             // go until we hit a converter to find the input
             RelNode input = node;
             RelNode parent = node;
-            while (!((input = input.getInput(0)) instanceof EnumerableJoin)) {
+            while (!((input = input.getInput(0)) instanceof EnumerableHashJoin)) {
                 parent = input;
             }
             final RelDataType rowType = input.getRowType();
@@ -92,7 +93,7 @@ public class JoinQueryExecutor {
             final List<Map<String, ? extends Element>> results =
                     (List<Map<String, ? extends Element>>) traversal.toList();
 
-            final EnumerableJoin join = (EnumerableJoin) input;
+            final EnumerableHashJoin join = (EnumerableHashJoin) input;
             // transform to proper project order
             final Map<String, String> fieldToTableMap = new HashMap<>();
             final Map<String, TableDef> tableIdToTableDefMap = new HashMap<>();
@@ -116,7 +117,7 @@ public class JoinQueryExecutor {
 
             parent.replaceInput(0, converter);
 
-            final Bindable<Object> bindable = EnumerableInterpretable.toBindable(null, null,
+            final Bindable<Object> bindable = EnumerableInterpretable.toBindable(ImmutableMap.of(), null,
                     (EnumerableRel) node, EnumerableRel.Prefer.ARRAY);
 
             final Enumerable<Object> enumerable = bindable.bind(null);
@@ -143,7 +144,7 @@ public class JoinQueryExecutor {
             final List<Map<String, ? extends Element>> results =
                     (List<Map<String, ? extends Element>>) traversal.toList();
 
-            final EnumerableJoin join = (EnumerableJoin) input;
+            final EnumerableHashJoin join = (EnumerableHashJoin) input;
             // transform to proper project order
             final Map<String, String> fieldToTableMap = new HashMap<>();
             final Map<String, TableDef> tableIdToTableDefMap = new HashMap<>();

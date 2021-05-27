@@ -37,7 +37,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>4.12</junit.version>
         <tinkerpop.version>3.4.8</tinkerpop.version>
-        <calcite.version>1.17.0</calcite.version>
+        <calcite.version>1.26.0</calcite.version>
         <javac.target>1.8</javac.target>
     </properties>
 

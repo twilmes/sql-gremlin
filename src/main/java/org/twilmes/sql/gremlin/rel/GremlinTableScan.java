@@ -84,28 +84,4 @@ public class GremlinTableScan extends TableScan implements GremlinRel {
         implementor.gremlinTable = gremlinTable;
         implementor.table = table;
     }
-
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        final GremlinTableScan that = (GremlinTableScan) o;
-
-        if (!Arrays.equals(fields, that.fields)) {
-            return false;
-        }
-        return gremlinTable.equals(that.gremlinTable);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = gremlinTable.hashCode();
-        result = 31 * result + Arrays.hashCode(fields);
-        return result;
-    }
 }

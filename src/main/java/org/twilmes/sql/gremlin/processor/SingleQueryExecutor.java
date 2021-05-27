@@ -19,6 +19,7 @@
 
 package org.twilmes.sql.gremlin.processor;
 
+import com.google.common.collect.ImmutableMap;
 import lombok.Getter;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpretable;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
@@ -112,7 +113,7 @@ public class SingleQueryExecutor {
                     new GremlinTraversalToEnumerableRelConverter(input.getCluster(),
                             input.getTraitSet(), traversalScan, rowType);
             parent.replaceInput(0, converter);
-            final Bindable bindable = EnumerableInterpretable.toBindable(null, null,
+            final Bindable bindable = EnumerableInterpretable.toBindable(ImmutableMap.of(), null,
                     (EnumerableRel) node, EnumerableRel.Prefer.ARRAY);
             final Enumerable<Object> enumerable = bindable.bind(null);
             rowResults = enumerable.toList();
@@ -191,11 +192,11 @@ public class SingleQueryExecutor {
             parent.replaceInput(0, converter);
 
             final Bindable bindable =
-                    EnumerableInterpretable.toBindable(null, null, (EnumerableRel) node, EnumerableRel.Prefer.ARRAY);
+                    EnumerableInterpretable.toBindable(ImmutableMap.of(), null, (EnumerableRel) node, EnumerableRel.Prefer.ARRAY);
             final Enumerable<Object> enumerable = bindable.bind(null);
 
             final List<Object> rowResults = enumerable.toList();
-            result = new SqlGremlinQueryResult(fieldNames, rowResults, table);
+            result = new SqlGremlinQueryResult(parent.getRowType().getFieldNames(), rowResults, table);
         }
         return result;
     }

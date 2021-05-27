@@ -207,17 +207,17 @@ public class GremlinCompilerTest extends BaseSqlGremlinTest {
 
         // friends of a friend
         assertResults(query("select p1.name, p2.name, p3.name from person as p1 " +
-                        "inner join person as p2 on p1.person_id = p2.person_id " +
-                        "inner join person as p3 on p3.person_id = p2.person_id"),
+                        "inner join person as p2 on p1.age = p2.age " +
+                        "inner join person as p3 on p3.age = p2.age"),
                 rows(
-                        r("Juanita", "Patty", "Tom"),
-                        r("Pavel", "Susan", "Phil")
+                        r("Tom", "Patty", "Juanita"),
+                        r("Phil", "Susan", "Pavel")
                 ));
 
         // friends of a friend's spaceship
         assertResults(query("select p1.name, p2.name, p3.name, s.name from person as p1 " +
-                        "inner join person as p2 on p1.person_id = p2.person_id " +
-                        "inner join person as p3 on p3.person_id = p2.person_id " +
+                        "inner join person as p2 on p1.age = p2.age " +
+                        "inner join person as p3 on p3.age = p2.age " +
                         "inner join spaceship as s on s.spaceship_id = p3.spaceship_id"),
                 rows(
                         r("Tom", "Patty", "Juanita", "Ship 4"),

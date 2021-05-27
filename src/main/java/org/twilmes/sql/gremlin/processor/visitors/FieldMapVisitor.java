@@ -20,7 +20,7 @@
 package org.twilmes.sql.gremlin.processor.visitors;
 
 import lombok.Getter;
-import org.apache.calcite.adapter.enumerable.EnumerableJoin;
+import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
 import org.apache.calcite.rel.RelNode;
 import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
 import java.util.HashMap;
@@ -36,15 +36,15 @@ import java.util.Map;
  */
 public class FieldMapVisitor implements RelVisitor {
     @Getter
-    private final Map<EnumerableJoin, Map<String, GremlinToEnumerableConverter>> fieldMap = new HashMap<>();
+    private final Map<EnumerableHashJoin, Map<String, GremlinToEnumerableConverter>> fieldMap = new HashMap<>();
 
     @Override
     public void visit(final RelNode node) {
         // we only care about joins
-        if (!(node instanceof EnumerableJoin)) {
+        if (!(node instanceof EnumerableHashJoin)) {
             return;
         }
-        final EnumerableJoin join = (EnumerableJoin) node;
+        final EnumerableHashJoin join = (EnumerableHashJoin) node;
         final RelNode left = join.getLeft();
         final RelNode right = join.getRight();
 
@@ -80,8 +80,8 @@ public class FieldMapVisitor implements RelVisitor {
     }
 
     private GremlinToEnumerableConverter getConverter(final int fieldIndex, final String field, final RelNode node) {
-        if (node instanceof EnumerableJoin) {
-            final EnumerableJoin join = (EnumerableJoin) node;
+        if (node instanceof EnumerableHashJoin) {
+            final EnumerableHashJoin join = (EnumerableHashJoin) node;
             final List<String> fieldNames = join.getRowType().getFieldNames();
             final String chosenField = fieldNames.get(fieldIndex);
             return fieldMap.get(join).get(chosenField);

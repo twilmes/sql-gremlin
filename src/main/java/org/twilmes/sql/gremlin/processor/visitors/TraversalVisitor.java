@@ -20,7 +20,7 @@
 package org.twilmes.sql.gremlin.processor.visitors;
 
 import lombok.Getter;
-import org.apache.calcite.adapter.enumerable.EnumerableJoin;
+import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Pair;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -40,7 +40,7 @@ public class TraversalVisitor implements RelVisitor {
 
     private static final String PREFIX = "table_";
     private final Map<GremlinToEnumerableConverter, List<RelNode>> scanMap;
-    private final Map<EnumerableJoin, Map<String, GremlinToEnumerableConverter>> fieldMap;
+    private final Map<EnumerableHashJoin, Map<String, GremlinToEnumerableConverter>> fieldMap;
     @Getter
     private final List<GraphTraversal<?, ?>> traversals = new ArrayList<>();
     @Getter
@@ -55,34 +55,28 @@ public class TraversalVisitor implements RelVisitor {
 
     public TraversalVisitor(final GraphTraversalSource traversalSource,
                             final Map<GremlinToEnumerableConverter, List<RelNode>> scanMap,
-                            final Map<EnumerableJoin, Map<String, GremlinToEnumerableConverter>> fieldMap) {
+                            final Map<EnumerableHashJoin, Map<String, GremlinToEnumerableConverter>> fieldMap) {
         this.scanMap = scanMap;
         this.fieldMap = fieldMap;
     }
 
     @Override
     public void visit(final RelNode node) {
-        if (!(node instanceof EnumerableJoin)) {
+        if (!(node instanceof EnumerableHashJoin)) {
             return;
         }
 
-        final EnumerableJoin join = (EnumerableJoin) node;
+        final EnumerableHashJoin join = (EnumerableHashJoin) node;
         RelNode left = join.getLeft();
         RelNode right = join.getRight();
 
-        final Integer leftKeyId = join.getLeftKeys().get(0);
-        final Integer rightKeyId = join.getRightKeys().get(0);
-
         final List<String> joinFields = join.getRowType().getFieldNames();
-        final List<String> leftJoinFields = joinFields.subList(0, left.getRowType().getFieldCount());
-        final List<String> rightJoinFields = joinFields.subList(left.getRowType().getFieldCount(), joinFields.size());
-
-        final String leftAliasedColumn = leftJoinFields.get(leftKeyId);
-        final String rightAliasedColumn = rightJoinFields.get(rightKeyId);
 
         if (!(left instanceof GremlinToEnumerableConverter)) {
             // This looks like a bug but isn't.
-            left = fieldMap.get(left).get(leftAliasedColumn);
+            final List<String> leftJoinFields = joinFields.subList(0, left.getRowType().getFieldCount());
+            final String leftAliasedColumn = leftJoinFields.get(join.analyzeCondition().leftKeys.get(0));
+            left = fieldMap.get(join).get(leftAliasedColumn);
         } else {
             final List<RelNode> scan = scanMap.get(left);
             final GraphTraversal<?, ?> leftTraversal = TraversalBuilder.toTraversal(scan);
@@ -90,6 +84,8 @@ public class TraversalVisitor implements RelVisitor {
             tableTraversalMap.put(getTableId((GremlinToEnumerableConverter) left), leftTraversal);
         }
         if (!(right instanceof GremlinToEnumerableConverter)) {
+            final List<String> rightJoinFields = joinFields.subList(left.getRowType().getFieldCount(), joinFields.size());
+            final String rightAliasedColumn = rightJoinFields.get(join.analyzeCondition().rightKeys.get(0));
             right = fieldMap.get(join).get(rightAliasedColumn);
         } else {
             final List<RelNode> scan = scanMap.get(right);
