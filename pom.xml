@@ -148,13 +148,14 @@
                                         http://stackoverflow.com/questions/999489/invalid-signature-file-when-attempting-to-run-a-jar
                                     -->
                                     <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                    </excludes>
                                 </filter>
                             </filters>
+                            <artifactSet>
+                                <excludes>
+                                    <!-- Should ultimately probably include patch in this files resources -->
+                                    <exclude>org.codehaus.janino:**</exclude>
+                                </excludes>
+                            </artifactSet>
                         </configuration>
                     </execution>
                 </executions>

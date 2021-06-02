@@ -67,7 +67,7 @@ public class QueryPlanner {
 
             return planner.transform(0, traitSet, convert.project());
         } catch (final Exception e) {
-            throw new ParseException("Error parsing: " + sql, e);
+            throw new ParseException("Error parsing: " + sql + " - " + e, e);
         }
     }
 
