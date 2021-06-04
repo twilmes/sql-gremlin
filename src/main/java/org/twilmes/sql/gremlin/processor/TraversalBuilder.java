@@ -75,6 +75,26 @@ public class TraversalBuilder {
         return traversal;
     }
 
+    public static void appendTraversal(final List<RelNode> relList, final GraphTraversal<?, ?> traversal) {
+        TableDef tableDef = null;
+        for (final RelNode rel : relList) {
+            if (rel instanceof GremlinTableScan) {
+                final GremlinTableScan tableScan = (GremlinTableScan) rel;
+                tableDef = tableScan.getGremlinTable().getTableDef();
+                traversal.hasLabel(tableDef.label);
+            }
+            if (rel instanceof GremlinFilter) {
+                final GremlinFilter filter = (GremlinFilter) rel;
+                final RexNode condition = filter.getCondition();
+                final FilterTranslator translator = new FilterTranslator(tableDef, filter.getRowType().getFieldNames());
+                final GraphTraversal<?, ?> predicates = translator.translateMatch(condition);
+                for (final Step<?, ?> step : predicates.asAdmin().getSteps()) {
+                    traversal.asAdmin().addStep(step);
+                }
+            }
+        }
+    }
+
     private static void findInsertionLocation(final Pair<String, String> pair, final List<Pair<String, String>> sorted)
             throws SQLException {
         final String first = sorted.get(0).getKey();

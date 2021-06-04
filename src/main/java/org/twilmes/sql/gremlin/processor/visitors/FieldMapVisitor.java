@@ -20,6 +20,7 @@
 package org.twilmes.sql.gremlin.processor.visitors;
 
 import lombok.Getter;
+import org.apache.calcite.adapter.enumerable.EnumerableCalc;
 import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
 import org.apache.calcite.rel.RelNode;
 import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
@@ -52,16 +53,22 @@ public class FieldMapVisitor implements RelVisitor {
             fieldMap.put(join, new HashMap<>());
         }
 
+        // TODO: Fix the EnumerableCalc logic for Joins.
         final List<String> leftFields = join.getRowType().getFieldNames().
                 subList(0, left.getRowType().getFieldCount());
         if (left instanceof GremlinToEnumerableConverter) {
             leftFields.forEach(field -> fieldMap.get(join).put(field, (GremlinToEnumerableConverter) left));
-        } else {
+        } else if (left instanceof EnumerableHashJoin){
             // we still need to figure out these fields...so walk on down
             int col = 0;
             for (final String field : leftFields) {
                 fieldMap.get(join).put(field, getConverter(col, field, left));
                 col++;
+            }
+        } else if (left instanceof EnumerableCalc) {
+            if (left.getInput(0) instanceof GremlinToEnumerableConverter) {
+                leftFields.forEach(
+                        field -> fieldMap.get(join).put(field, (GremlinToEnumerableConverter) left.getInput(0)));
             }
         }
 
@@ -69,12 +76,17 @@ public class FieldMapVisitor implements RelVisitor {
                 subList(left.getRowType().getFieldCount(), join.getRowType().getFieldCount());
         if (right instanceof GremlinToEnumerableConverter) {
             rightFields.forEach(field -> fieldMap.get(join).put(field, (GremlinToEnumerableConverter) right));
-        } else {
+        } else if (right instanceof EnumerableHashJoin) {
             // we still need to figure out these fields...so walk on down
             int col = 0;
             for (final String field : rightFields) {
                 fieldMap.get(join).put(field, getConverter(col, field, right));
                 col++;
+            }
+        } else if (right instanceof EnumerableCalc) {
+            if (right.getInput(0) instanceof GremlinToEnumerableConverter) {
+                leftFields.forEach(
+                        field -> fieldMap.get(join).put(field, (GremlinToEnumerableConverter) right.getInput(0)));
             }
         }
     }
@@ -85,6 +97,10 @@ public class FieldMapVisitor implements RelVisitor {
             final List<String> fieldNames = join.getRowType().getFieldNames();
             final String chosenField = fieldNames.get(fieldIndex);
             return fieldMap.get(join).get(chosenField);
+        } else if (node instanceof EnumerableCalc) {
+            final EnumerableCalc calc = (EnumerableCalc) node;
+            final String chosenField = calc.getRowType().getFieldNames().get(fieldIndex);
+            return fieldMap.get(node).get(chosenField);
         }
         return null;
     }

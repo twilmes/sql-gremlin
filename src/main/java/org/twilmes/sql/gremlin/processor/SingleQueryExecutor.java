@@ -159,7 +159,6 @@ public class SingleQueryExecutor {
                 idx = 0;
                 final Object[] row = new Object[fieldNames.size()];
                 for (final String field : fieldNames) {
-                    // TODO: Use propName instead of field after this, it handles looking it table for case sensitive version.
                     final String propName = TableUtil.getProperty(table, field);
                     final int keyIndex = propName.toLowerCase().indexOf("_id");
                     Object val = null;
@@ -167,13 +166,13 @@ public class SingleQueryExecutor {
                         // Could be PK or FK.
                         final String key = propName.substring(0, keyIndex);
                         if (table.label.toLowerCase().equals(key.toLowerCase())) {
-                            val = mapResult.get(field);
+                            val = mapResult.get(propName);
                         } else {
                             // todo add fk (connected vertex) ids
                         }
                     } else {
                         if (mapResult.containsKey(propName)) {
-                            val = ((List) mapResult.get(field.toLowerCase())).get(0);
+                            val = ((List) mapResult.get(propName)).get(0);
                             val = TableUtil.convertType(val, table.getColumn(field));
                         }
                     }
@@ -192,11 +191,14 @@ public class SingleQueryExecutor {
             parent.replaceInput(0, converter);
 
             final Bindable bindable =
-                    EnumerableInterpretable.toBindable(ImmutableMap.of(), null, (EnumerableRel) node, EnumerableRel.Prefer.ARRAY);
+                    EnumerableInterpretable
+                            .toBindable(ImmutableMap.of(), null, (EnumerableRel) node, EnumerableRel.Prefer.ARRAY);
+
             final Enumerable<Object> enumerable = bindable.bind(null);
 
             final List<Object> rowResults = enumerable.toList();
-            result = new SqlGremlinQueryResult(parent.getRowType().getFieldNames(), rowResults, table);
+            result = new SqlGremlinQueryResult(input.getCluster().getPlanner().getRoot().getRowType().getFieldNames(),
+                    rowResults, table);
         }
         return result;
     }
@@ -207,21 +209,24 @@ public class SingleQueryExecutor {
         private final List<String> columnTypes = new ArrayList<>();
         private final List<List<Object>> rows = new ArrayList<>();
 
-        SqlGremlinQueryResult(final List<String> columns, final List<Object> rows, final TableDef tableConfig) {
+        SqlGremlinQueryResult(final List<String> columns, final List<Object> rows, final TableDef tableConfigs) {
             this.columns = columns;
             for (final Object row : rows) {
                 final List<Object> convertedRow = new ArrayList<>();
                 if (row instanceof Object[]) {
                     convertedRow.addAll(Arrays.asList((Object[]) row));
-                } else if (row != null) {
+                } else {
                     convertedRow.add(row);
                 }
                 this.rows.add(convertedRow);
             }
-
+            
             for (final String column : columns) {
-                final TableColumn tableColumn = tableConfig.columns.getOrDefault(column, new TableColumn());
-                columnTypes.add((tableColumn.getType() == null) ? "string" : tableColumn.getType());
+                TableColumn col = null;
+                if (tableConfigs.columns.containsKey(column)) {
+                    col = tableConfigs.getColumn(column);
+                }
+                columnTypes.add((col == null || col.getType() == null) ? "string" : col.getType());
             }
         }
     }

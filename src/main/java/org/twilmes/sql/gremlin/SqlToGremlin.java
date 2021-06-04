@@ -30,7 +30,6 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
-import org.apache.tinkerpop.gremlin.process.traversal.Step;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.twilmes.sql.gremlin.processor.QueryPlanner;
@@ -94,7 +93,7 @@ public class SqlToGremlin {
         return queryPlanner.explain(node);
     }
 
-    public SingleQueryExecutor.SqlGremlinQueryResult execute(final String sql) {
+    public SingleQueryExecutor.SqlGremlinQueryResult execute(final String sql) throws SQLException {
         final QueryPlanner queryPlanner = new QueryPlanner(frameworkConfig);
         final RelNode node = queryPlanner.plan(sql);
 
@@ -116,30 +115,26 @@ public class SqlToGremlin {
 
         // Simple case, no joins.
         if (scanMap.size() == 1) {
-            final GraphTraversal<?, ?> scan = TraversalBuilder.toTraversal(scanMap.values().iterator().next());
             final GraphTraversal<?, ?> traversal = g.V();
-            for (final Step<?, ?> step : scan.asAdmin().getSteps()) {
-                traversal.asAdmin().addStep(step);
-            }
-
+            TraversalBuilder.appendTraversal(scanMap.values().iterator().next(), traversal);
             final TableDef table = TableUtil.getTableDef(scanMap.values().iterator().next());
             final SingleQueryExecutor queryExec = new SingleQueryExecutor(node, traversal, table);
             return queryExec.handle();
         } else {
+            throw new SQLException("Join queries are not currently supported.");
+
             /*
             final FieldMapVisitor fieldMapper = new FieldMapVisitor();
             new RelWalker(root, fieldMapper);
             final TraversalVisitor traversalVisitor = new TraversalVisitor(g, scanMap, fieldMapper.getFieldMap());
             new RelWalker(root, traversalVisitor);
-
-            traversal = TraversalBuilder.buildMatch(g, traversalVisitor.getTableTraversalMap(),
+            final GraphTraversal<?, ?> traversal = TraversalBuilder.buildMatch(g, traversalVisitor.getTableTraversalMap(),
                     traversalVisitor.getJoinPairs(), schemaConfig, traversalVisitor.getTableIdConverterMap());
             final JoinQueryExecutor queryExec = new JoinQueryExecutor(node, fieldMapper.getFieldMap(), traversal,
                     traversalVisitor.getTableIdMap());
-            rows = queryExec.run();*/
+            return queryExec.handle();
+             */
         }
-
-        return null;
     }
 
 }
