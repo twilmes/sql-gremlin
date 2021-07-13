@@ -109,6 +109,13 @@
             <version>RELEASE</version>
             <scope>test</scope>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-log4j12 -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.29</version>
+            <scope>test</scope>
+        </dependency>
         <!--<dependency>-->
             <!--<groupId>org.apache.tinkerpop</groupId>-->
             <!--<artifactId>tinkergraph-gremlin</artifactId>-->
@@ -160,6 +167,7 @@
                                 <excludes>
                                     <!-- Should ultimately probably include patch in this files resources -->
                                     <exclude>org.codehaus.janino:**</exclude>
+                                    <exclude>org.slf4j:.*</exclude>
                                 </excludes>
                             </artifactSet>
                         </configuration>
