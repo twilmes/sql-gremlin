@@ -21,6 +21,7 @@ package org.twilmes.sql.gremlin.schema;
 
 import lombok.Getter;
 import lombok.Setter;
+import java.util.List;
 
 /**
  * Created by twilmes on 10/10/15.
@@ -33,6 +34,7 @@ public class TableRelationship {
     private String inTable;
     private String edgeLabel;
     private String fkTable;
+    private List<TableColumn> columns;
 
     // Override with null check.
     public String getFkTable() {

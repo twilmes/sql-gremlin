@@ -19,6 +19,8 @@
 
 package org.twilmes.sql.gremlin.processor;
 
+import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.twilmes.sql.gremlin.BaseSqlGremlinTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,6 +28,8 @@ import org.junit.Test;
 /**
  * Created by twilmes on 12/7/15.
  */
+@Disabled
+@Ignore
 public class GremlinCompilerTest extends BaseSqlGremlinTest {
 
     @Before

@@ -19,7 +19,6 @@
 
 package org.twilmes.sql.gremlin;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelTraitDef;
@@ -42,7 +41,6 @@ import org.twilmes.sql.gremlin.schema.GremlinSchema;
 import org.twilmes.sql.gremlin.schema.SchemaConfig;
 import org.twilmes.sql.gremlin.schema.TableDef;
 import org.twilmes.sql.gremlin.schema.TableUtil;
-import java.io.File;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -60,18 +58,7 @@ public class SqlToGremlin {
 
     public SqlToGremlin(final SchemaConfig schemaConfig, final GraphTraversalSource g) throws SQLException {
         this.g = g;
-        if (schemaConfig == null) {
-            final ObjectMapper mapper = new ObjectMapper();
-            try {
-                // TODO AN-538 Schema support needs to be added here.
-                this.schemaConfig =
-                        mapper.readValue(new File("output.json"), SchemaConfig.class);
-            } catch (final Exception e) {
-                throw new SQLException("Error reading the schema file.", e);
-            }
-        } else {
-            this.schemaConfig = schemaConfig;
-        }
+        this.schemaConfig = schemaConfig;
         final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
         final List<RelTraitDef> traitDefs = new ArrayList<>();
         traitDefs.add(ConventionTraitDef.INSTANCE);
@@ -115,11 +102,14 @@ public class SqlToGremlin {
 
         // Simple case, no joins.
         if (scanMap.size() == 1) {
-            final GraphTraversal<?, ?> traversal = g.V();
-            TraversalBuilder.appendTraversal(scanMap.values().iterator().next(), traversal);
             final TableDef table = TableUtil.getTableDef(scanMap.values().iterator().next());
+            if (table == null) {
+                throw new SQLException("Failed to find table definition.");
+            }
+            final GraphTraversal<?, ?> traversal = table.isVertex ? g.V() : g.E();
+            TraversalBuilder.appendTraversal(scanMap.values().iterator().next(), traversal);
             final SingleQueryExecutor queryExec = new SingleQueryExecutor(node, traversal, table);
-            return queryExec.handle();
+            return table.isVertex ? queryExec.handleVertex() : queryExec.handleEdge();
         } else {
             throw new SQLException("Join queries are not currently supported.");
 
