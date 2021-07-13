@@ -31,7 +31,19 @@ public class TableDef {
     public String tableName;
     public String label;
     public Boolean isVertex;
+    public Boolean hasOut = false;
+    public Boolean hasIn = false;
     public Map<String, TableColumn> columns = new HashMap<>();
+
+
+    TableDef(final String tableName, final String label, final boolean isVertex) {
+        this.tableName = tableName;
+        this.label = label;
+        this.isVertex = isVertex;
+    }
+
+    TableDef(){
+    }
 
     public TableColumn getColumn(final String column) {
         final Optional<TableColumn> res = this.columns.values().

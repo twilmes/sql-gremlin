@@ -23,6 +23,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -44,27 +45,18 @@ public class QueryPlanner {
 
     public RelNode plan(String sql) {
         try {
-            // hack to capitalize group by columns...not sure why the parser complains if the group by columns
-            // are not capitalized
-            final int groupByIndex = sql.toLowerCase().indexOf("group by");
-            if (groupByIndex > -1) {
-                final String firstPart = sql.substring(0, groupByIndex + "group by".length());
-                final String groupPart = sql.substring(groupByIndex + "group by".length());
-                sql = firstPart + groupPart.toUpperCase();
-                // from index
-                final int fromIndex = sql.toLowerCase().indexOf("from");
-                sql = sql.substring(0, fromIndex).toUpperCase() + sql.substring(fromIndex);
-            }
             final SqlNode parse = planner.parse(sql);
 
             final SqlNode validate = planner.validate(parse);
-            final RelNode convert = planner.convert(validate);
+            final RelRoot convert = planner.rel(validate);
+
+            // final RelNode convert = planner.convert(validate);
             final RelTraitSet traitSet = planner.getEmptyTraitSet()
                     .replace(EnumerableConvention.INSTANCE);
 
-            return planner.transform(0, traitSet, convert);
+            return planner.transform(0, traitSet, convert.project());
         } catch (final Exception e) {
-            throw new ParseException("Error parsing: " + sql, e);
+            throw new ParseException("Error parsing: " + sql + " - " + e, e);
         }
     }
 

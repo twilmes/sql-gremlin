@@ -55,11 +55,6 @@ public class GremlinToEnumerableConverter
     }
 
     @Override
-    public RelOptCost computeSelfCost(final RelOptPlanner planner) {
-        return super.computeSelfCost(planner).multiplyBy(.1);
-    }
-
-    @Override
     public Result implement(final EnumerableRelImplementor implementor, final Prefer pref) {
         return null;
     }

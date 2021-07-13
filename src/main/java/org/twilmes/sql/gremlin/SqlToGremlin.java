@@ -19,7 +19,6 @@
 
 package org.twilmes.sql.gremlin;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelTraitDef;
@@ -30,7 +29,6 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
-import org.apache.tinkerpop.gremlin.process.traversal.Step;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.twilmes.sql.gremlin.processor.QueryPlanner;
@@ -43,7 +41,6 @@ import org.twilmes.sql.gremlin.schema.GremlinSchema;
 import org.twilmes.sql.gremlin.schema.SchemaConfig;
 import org.twilmes.sql.gremlin.schema.TableDef;
 import org.twilmes.sql.gremlin.schema.TableUtil;
-import java.io.File;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,23 +55,10 @@ public class SqlToGremlin {
     private final GraphTraversalSource g;
     private final SchemaConfig schemaConfig;
     private final FrameworkConfig frameworkConfig;
-    private QueryPlanner queryPlanner;
 
     public SqlToGremlin(final SchemaConfig schemaConfig, final GraphTraversalSource g) throws SQLException {
         this.g = g;
-        if (schemaConfig == null) {
-            final ObjectMapper mapper = new ObjectMapper();
-            try {
-                // TODO AN-538 Schema support needs to be added here.
-                this.schemaConfig =
-                        mapper.readValue(new File("output.json"), SchemaConfig.class);
-                this.schemaConfig.getTables().forEach(t -> System.out.println(t.getName()));
-            } catch (final Exception e) {
-                throw new SQLException("Error reading the schema file.", e);
-            }
-        } else {
-            this.schemaConfig = schemaConfig;
-        }
+        this.schemaConfig = schemaConfig;
         final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
         final List<RelTraitDef> traitDefs = new ArrayList<>();
         traitDefs.add(ConventionTraitDef.INSTANCE);
@@ -91,13 +75,13 @@ public class SqlToGremlin {
     }
 
     public String explain(final String sql) {
-        queryPlanner = new QueryPlanner(frameworkConfig);
+        final QueryPlanner queryPlanner = new QueryPlanner(frameworkConfig);
         final RelNode node = queryPlanner.plan(sql);
         return queryPlanner.explain(node);
     }
 
-    public SingleQueryExecutor.SqlGremlinQueryResult execute(final String sql) {
-        queryPlanner = new QueryPlanner(frameworkConfig);
+    public SingleQueryExecutor.SqlGremlinQueryResult execute(final String sql) throws SQLException {
+        final QueryPlanner queryPlanner = new QueryPlanner(frameworkConfig);
         final RelNode node = queryPlanner.plan(sql);
 
         // Determine if we need to break the logical plan off and run part via Gremlin & part Calcite
@@ -118,30 +102,29 @@ public class SqlToGremlin {
 
         // Simple case, no joins.
         if (scanMap.size() == 1) {
-            final GraphTraversal<?, ?> scan = TraversalBuilder.toTraversal(scanMap.values().iterator().next());
-            final GraphTraversal<?, ?> traversal = g.V();
-            for (final Step<?, ?> step : scan.asAdmin().getSteps()) {
-                traversal.asAdmin().addStep(step);
-            }
-
             final TableDef table = TableUtil.getTableDef(scanMap.values().iterator().next());
+            if (table == null) {
+                throw new SQLException("Failed to find table definition.");
+            }
+            final GraphTraversal<?, ?> traversal = table.isVertex ? g.V() : g.E();
+            TraversalBuilder.appendTraversal(scanMap.values().iterator().next(), traversal);
             final SingleQueryExecutor queryExec = new SingleQueryExecutor(node, traversal, table);
-            return queryExec.handle();
+            return table.isVertex ? queryExec.handleVertex() : queryExec.handleEdge();
         } else {
+            throw new SQLException("Join queries are not currently supported.");
+
             /*
             final FieldMapVisitor fieldMapper = new FieldMapVisitor();
             new RelWalker(root, fieldMapper);
             final TraversalVisitor traversalVisitor = new TraversalVisitor(g, scanMap, fieldMapper.getFieldMap());
             new RelWalker(root, traversalVisitor);
-
-            traversal = TraversalBuilder.buildMatch(g, traversalVisitor.getTableTraversalMap(),
+            final GraphTraversal<?, ?> traversal = TraversalBuilder.buildMatch(g, traversalVisitor.getTableTraversalMap(),
                     traversalVisitor.getJoinPairs(), schemaConfig, traversalVisitor.getTableIdConverterMap());
             final JoinQueryExecutor queryExec = new JoinQueryExecutor(node, fieldMapper.getFieldMap(), traversal,
                     traversalVisitor.getTableIdMap());
-            rows = queryExec.run();*/
+            return queryExec.handle();
+             */
         }
-
-        return null;
     }
 
 }

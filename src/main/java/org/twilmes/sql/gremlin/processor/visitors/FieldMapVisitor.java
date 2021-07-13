@@ -20,7 +20,8 @@
 package org.twilmes.sql.gremlin.processor.visitors;
 
 import lombok.Getter;
-import org.apache.calcite.adapter.enumerable.EnumerableJoin;
+import org.apache.calcite.adapter.enumerable.EnumerableCalc;
+import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
 import org.apache.calcite.rel.RelNode;
 import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
 import java.util.HashMap;
@@ -36,15 +37,15 @@ import java.util.Map;
  */
 public class FieldMapVisitor implements RelVisitor {
     @Getter
-    private final Map<EnumerableJoin, Map<String, GremlinToEnumerableConverter>> fieldMap = new HashMap<>();
+    private final Map<EnumerableHashJoin, Map<String, GremlinToEnumerableConverter>> fieldMap = new HashMap<>();
 
     @Override
     public void visit(final RelNode node) {
         // we only care about joins
-        if (!(node instanceof EnumerableJoin)) {
+        if (!(node instanceof EnumerableHashJoin)) {
             return;
         }
-        final EnumerableJoin join = (EnumerableJoin) node;
+        final EnumerableHashJoin join = (EnumerableHashJoin) node;
         final RelNode left = join.getLeft();
         final RelNode right = join.getRight();
 
@@ -52,16 +53,22 @@ public class FieldMapVisitor implements RelVisitor {
             fieldMap.put(join, new HashMap<>());
         }
 
+        // TODO: Fix the EnumerableCalc logic for Joins.
         final List<String> leftFields = join.getRowType().getFieldNames().
                 subList(0, left.getRowType().getFieldCount());
         if (left instanceof GremlinToEnumerableConverter) {
             leftFields.forEach(field -> fieldMap.get(join).put(field, (GremlinToEnumerableConverter) left));
-        } else {
+        } else if (left instanceof EnumerableHashJoin){
             // we still need to figure out these fields...so walk on down
             int col = 0;
             for (final String field : leftFields) {
                 fieldMap.get(join).put(field, getConverter(col, field, left));
                 col++;
+            }
+        } else if (left instanceof EnumerableCalc) {
+            if (left.getInput(0) instanceof GremlinToEnumerableConverter) {
+                leftFields.forEach(
+                        field -> fieldMap.get(join).put(field, (GremlinToEnumerableConverter) left.getInput(0)));
             }
         }
 
@@ -69,22 +76,31 @@ public class FieldMapVisitor implements RelVisitor {
                 subList(left.getRowType().getFieldCount(), join.getRowType().getFieldCount());
         if (right instanceof GremlinToEnumerableConverter) {
             rightFields.forEach(field -> fieldMap.get(join).put(field, (GremlinToEnumerableConverter) right));
-        } else {
+        } else if (right instanceof EnumerableHashJoin) {
             // we still need to figure out these fields...so walk on down
             int col = 0;
             for (final String field : rightFields) {
                 fieldMap.get(join).put(field, getConverter(col, field, right));
                 col++;
             }
+        } else if (right instanceof EnumerableCalc) {
+            if (right.getInput(0) instanceof GremlinToEnumerableConverter) {
+                leftFields.forEach(
+                        field -> fieldMap.get(join).put(field, (GremlinToEnumerableConverter) right.getInput(0)));
+            }
         }
     }
 
     private GremlinToEnumerableConverter getConverter(final int fieldIndex, final String field, final RelNode node) {
-        if (node instanceof EnumerableJoin) {
-            final EnumerableJoin join = (EnumerableJoin) node;
+        if (node instanceof EnumerableHashJoin) {
+            final EnumerableHashJoin join = (EnumerableHashJoin) node;
             final List<String> fieldNames = join.getRowType().getFieldNames();
             final String chosenField = fieldNames.get(fieldIndex);
             return fieldMap.get(join).get(chosenField);
+        } else if (node instanceof EnumerableCalc) {
+            final EnumerableCalc calc = (EnumerableCalc) node;
+            final String chosenField = calc.getRowType().getFieldNames().get(fieldIndex);
+            return fieldMap.get(node).get(chosenField);
         }
         return null;
     }
