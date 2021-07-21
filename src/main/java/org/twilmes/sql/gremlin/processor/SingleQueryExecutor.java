@@ -41,14 +41,12 @@ import org.twilmes.sql.gremlin.schema.TableDef;
 import org.twilmes.sql.gremlin.schema.TableUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.id;
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.inE;
@@ -77,14 +75,16 @@ public class SingleQueryExecutor {
     private static final String OUT_E_LABEL_KEY = "__out_e_label__";
     private static final String MAP_KEY = "__map__";
     private static final String ID_KEY = "__id__";
-    private static final int RESULT_LIMIT = 10000;
-    private static final int PAGE_SIZE = 1000;
+    private static final long RESULT_LIMIT = 10000;
+    private static final int DEFAULT_PAGE_SIZE = 1000;
+    // default to 1000
+    private static int pageSize = DEFAULT_PAGE_SIZE;
     // calcite relational expression
     private final RelNode node;
-    // gremlin traversal
-    private GraphTraversal<?, ?> traversal;
     // defines table format
     private final TableDef table;
+    // gremlin traversal
+    private GraphTraversal<?, ?> traversal;
     private SqlGremlinQueryResult sqlGremlinQueryResult;
 
     public SingleQueryExecutor(final RelNode node, final GraphTraversal<?, ?> traversal, final TableDef table) {
@@ -258,43 +258,9 @@ public class SingleQueryExecutor {
                     .by(outE().inV().label());
         }
 
-        //        final List<Map<String, Object>> results = (List<Map<String, Object>>) traversal.next(PAGE_SIZE);
-        //        final List<Object> rows = new ArrayList<>();
-        //        for (final Map<String, Object> map : results) {
-        //            final Map<Object, Object> mapResult = (Map<Object, Object>) map.get(MAP_KEY);
-        //            final String inEId = (String) map.get(IN_E_ID_KEY);
-        //            final String inELabel = (String) map.get(IN_E_LABEL_KEY);
-        //            final String outEId = (String) map.get(OUT_E_ID_KEY);
-        //            final String outELabel = (String) map.get(OUT_E_LABEL_KEY);
-        //            final String id = (String) map.get(ID_KEY);
-        //            int idx = 0;
-        //            final Object[] row = new Object[fieldNames.size()];
-        //            for (final String field : fieldNames) {
-        //                final String propName = TableUtil.getProperty(table, field);
-        //                if (propName.toUpperCase().endsWith("_ID")) {
-        //                    final String labelName = propName.toUpperCase().replace("_ID", "");
-        //                    if (table.hasIn && inELabel != null && labelName.toUpperCase().equals(inELabel.toUpperCase())) {
-        //                        row[idx] = inEId;
-        //                    } else if (table.hasOut && outELabel != null &&
-        //                            labelName.toUpperCase().equals(outELabel.toUpperCase())) {
-        //                        row[idx] = outEId;
-        //                    } else if (labelName.toUpperCase().equals(table.label.toUpperCase())) {
-        //                        row[idx] = id;
-        //                    } else {
-        //                        row[idx] = null;
-        //                    }
-        //                } else {
-        //                    row[idx] = mapResult.getOrDefault(propName, null);
-        //                    if (row[idx] instanceof List) {
-        //                        row[idx] = ((List<?>) row[idx]).get(0);
-        //                    }
-        //                    row[idx] = TableUtil.convertType(row[idx], table.getColumn(field));
-        //                }
-        //                idx++;
-        //            }
-        //            rows.add(row);
-        //        }
-        sqlGremlinQueryResult = new SqlGremlinQueryResult(input.getCluster().getPlanner().getRoot().getRowType().getFieldNames(), table);
+        sqlGremlinQueryResult =
+                new SqlGremlinQueryResult(input.getCluster().getPlanner().getRoot().getRowType().getFieldNames(),
+                        table);
 
         // Launch thread to continue grabbing results.
         final ExecutorService executor = Executors.newSingleThreadExecutor(
@@ -304,18 +270,192 @@ public class SingleQueryExecutor {
         executor.execute(pagination);
         executor.shutdown();
 
-        try {
-            executor.awaitTermination(20, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        //        try {
+        //            executor.awaitTermination(20, TimeUnit.SECONDS);
+        //        } catch (InterruptedException e) {
+        //            e.printStackTrace();
+        //        }
         return sqlGremlinQueryResult;
         //        return convertResult(rows, input, parent, rowType);
+    }
+
+    public SqlGremlinQueryResult handleEdge() {
+        if (isConvertable(node)) {
+            return null;
+        }
+
+        // Go until we hit a converter to find the input.
+        RelNode input = node;
+        RelNode parent = node;
+        while (!((input = input.getInput(0)) instanceof GremlinToEnumerableConverter)) {
+            // TODO: Figure out how to push this into the traversal.
+            if (input instanceof EnumerableLimit) {
+                System.out.println("EnumerableLimit");
+            }
+            parent = input;
+        }
+        final RelDataType rowType = input.getRowType();
+        final List<String> fieldNames = rowType.getFieldNames();
+
+        traversal = traversal.project(MAP_KEY, IN_V_ID_KEY, IN_V_LABEL_KEY, OUT_V_ID_KEY, OUT_V_LABEL_KEY, ID_KEY)
+                .by(valueMap().with(WithOptions.tokens))
+                .by(inV().id())
+                .by(inV().label())
+                .by(outV().id())
+                .by(outV().label())
+                .by(id()).limit(RESULT_LIMIT);
+
+        sqlGremlinQueryResult =
+                new SqlGremlinQueryResult(input.getCluster().getPlanner().getRoot().getRowType().getFieldNames(),
+                        table);
+
+        // Launch thread to continue grabbing results.
+        final ExecutorService executor = Executors.newSingleThreadExecutor(
+                new ThreadFactoryBuilder().setNameFormat("Data-Insert-Thread").setDaemon(true).build());
+
+        final Runnable pagination = new EdgePagination(input, parent);
+        executor.execute(pagination);
+        executor.shutdown();
+        //        try {
+        //            executor.awaitTermination(20, TimeUnit.SECONDS);
+        //        } catch (InterruptedException e) {
+        //            e.printStackTrace();
+        //        }
+
+        return sqlGremlinQueryResult;
+        //return convertResult(rows, input, parent, rowType);
+    }
+
+    //    SqlGremlinQueryResult convertResult(final List<Object> rows, final RelNode input, final RelNode parent,
+    //                                        final RelDataType rowType) {
+    //        return new SqlGremlinQueryResult(input.getCluster().getPlanner().getRoot().getRowType().getFieldNames(), table);
+    //    }
+
+    // converts input row results and insert them into sqlGremlinQueryResult
+    void convertAndInsertResult(final SqlGremlinQueryResult sqlGremlinQueryResult, final List<Object> rows,
+                                final RelNode input, final RelNode parent,
+                                final RelDataType rowType) {
+        final GremlinTraversalScan traversalScan =
+                new GremlinTraversalScan(input.getCluster(), input.getTraitSet(), rowType, rows);
+
+        final GremlinTraversalToEnumerableRelConverter converter =
+                new GremlinTraversalToEnumerableRelConverter(input.getCluster(), input.getTraitSet(), traversalScan,
+                        rowType);
+        parent.replaceInput(0, converter);
+        final Bindable<?> bindable =
+                EnumerableInterpretable
+                        .toBindable(ImmutableMap.of(), null, (EnumerableRel) node, EnumerableRel.Prefer.ARRAY);
+
+        final Enumerable<?> enumerable = bindable.bind(null);
+        final List<?> rowResults = enumerable.toList();
+
+        final List<List<Object>> finalRowResult = new ArrayList<>();
+        for (final Object row : rowResults) {
+            final List<Object> convertedRow = new ArrayList<>();
+            if (row instanceof Object[]) {
+                convertedRow.addAll(Arrays.asList((Object[]) row));
+            } else {
+                convertedRow.add(row);
+            }
+            finalRowResult.add(convertedRow);
+        }
+        sqlGremlinQueryResult.addResults(finalRowResult);
+    }
+
+    @Getter
+    public static class SqlGremlinQueryResult {
+        private final List<String> columns;
+        private final List<String> columnTypes = new ArrayList<>();
+        private final Object assertEmptyLock = new Object();
+        // private final List<List<Object>> rows = new ArrayList<>();
+        // blocking queue is shared between threads, here we use it so we can take elements out of it, while we put
+        // elements inside
+
+        // blocking queue is used when you have multiple threads put and take items from it, so do we want to use the queue
+        // in the way that set the queue size to page limit, then have launch a thread that continuously gets all results
+        // dumping them into the queue, then a full queue will block the thread from adding elements, then the results
+        // get dumped into a list to be returned? At that point the thread will continue to dump result
+
+        // or do we want an unbounded blocking queue, for which we will only block on empty, and then continuously put
+        // results into the queue, but have the thread monitor size of the result list and insert when we are not at capacity?
+        private final BlockingQueue<List<Object>> blockingQueueRows = new LinkedBlockingQueue<>();
+        private boolean isEmpty = false;
+        private Thread currThread = null;
+
+        SqlGremlinQueryResult(final List<String> columns, final TableDef tableConfigs) {
+            this.columns = columns;
+
+            for (final String column : columns) {
+                TableColumn col = null;
+                if (tableConfigs.columns.containsKey(column)) {
+                    col = tableConfigs.getColumn(column);
+                }
+                columnTypes.add((col == null || col.getType() == null) ? "string" : col.getType());
+            }
+        }
+
+        public void assertIsEmpty() {
+            synchronized (assertEmptyLock) {
+                // insert specific stop signal
+                // blockingQueueRows.add(null);
+                // interrupt here?
+                // Thread.currentThread().interrupt();
+                //
+                if (currThread != null && blockingQueueRows.size() == 0) {
+                    System.out.println("assertIsEmpty() INTERRUPT THREAD CALL");
+                    currThread.interrupt();
+                }
+                isEmpty = true;
+            }
+        }
+
+        // add result here needs to be the converted rows
+        public void addResults(final List<List<Object>> rows) {
+            blockingQueueRows.addAll(rows);
+        }
+
+        // get result blocks if the queue is empty, so we have to make sure that is empty doesn't change when it is
+        // waiting for the queue;
+        // is it possible for us to issue getResult --> result set not empty yet but empty queue --> starts waiting
+        // --> then the thread asserts it is empty --> but we are stuck waiting?
+        public Object getResult() {
+            try {
+                synchronized (assertEmptyLock) {
+                    System.out.println("getResult() INSIDE LOCK");
+                    // pass current thread in, and interrupt in assertIsEmpty
+                    this.currThread = Thread.currentThread();
+                    if (isEmpty && blockingQueueRows.size() == 0) {
+                        System.out.println("getResult() IS EMPTY");
+                        return null;
+                    }
+                }
+                System.out.println("getResult() CURRENT SIZE: " + this.blockingQueueRows.size());
+                System.out.println("getResult() RETURN RESULT");
+                return this.blockingQueueRows.take();
+            } catch (final InterruptedException ignored) {
+                System.out.println("getResult() INTERRUPTED: " + ignored);
+                return null;
+            }
+        }
+
+        public int getPageSize() {
+            return pageSize;
+        }
+
+        // TODO: should this be something SqlGremlinQueryResult manage? this is done only because SqlGremlinQueryResult
+        //  is the only object being passed through the ResultSet constructor
+        public void setPageSize(int size) {
+            if (size <= 0) {
+                pageSize = DEFAULT_PAGE_SIZE;
+            }
+            pageSize = size;
+        }
     }
 
     public class VertexPagination implements Runnable {
         private RelNode input;
         private RelNode parent;
+        private int cumulativeRes = 0;
 
         VertexPagination(final RelNode input, final RelNode parent) {
             this.input = input;
@@ -324,11 +464,14 @@ public class SingleQueryExecutor {
 
         @Override
         public void run() {
+            System.out.println("VERTEX PAGINATION START");
             // Monitor size of sqlGremlinQueryResult list and insert on the fly.
             while (traversal.hasNext()) {
+                System.out.println("VERTEX PAGINATION BATCH START SIZE: " + cumulativeRes);
                 final RelDataType rowType = input.getRowType();
                 final List<String> fieldNames = rowType.getFieldNames();
-                final List<Map<String, Object>> results = (List<Map<String, Object>>) traversal.next(PAGE_SIZE);
+                final List<Map<String, Object>> results = (List<Map<String, Object>>) traversal.next(pageSize);
+                cumulativeRes += results.size();
                 final List<Object> rows = new ArrayList<>();
                 for (final Map<String, Object> map : results) {
                     final Map<Object, Object> mapResult = (Map<Object, Object>) map.get(MAP_KEY);
@@ -343,7 +486,8 @@ public class SingleQueryExecutor {
                         final String propName = TableUtil.getProperty(table, field);
                         if (propName.toUpperCase().endsWith("_ID")) {
                             final String labelName = propName.toUpperCase().replace("_ID", "");
-                            if (table.hasIn && inELabel != null && labelName.toUpperCase().equals(inELabel.toUpperCase())) {
+                            if (table.hasIn && inELabel != null &&
+                                    labelName.toUpperCase().equals(inELabel.toUpperCase())) {
                                 row[idx] = inEId;
                             } else if (table.hasOut && outELabel != null &&
                                     labelName.toUpperCase().equals(outELabel.toUpperCase())) {
@@ -364,101 +508,13 @@ public class SingleQueryExecutor {
                     }
                     rows.add(row);
                 }
+                System.out.println("VERTEX PAGINATION BATCH DONE");
                 convertAndInsertResult(sqlGremlinQueryResult, rows, input, parent, rowType);
             }
             // If we run out of traversal data (or hit our limit), stop inserting and signal to the result that it is done.
+            System.out.println("VERTEX PAGINATION DONE. FINAL SIZE: " + cumulativeRes);
             sqlGremlinQueryResult.assertIsEmpty();
         }
-    }
-
-    public SqlGremlinQueryResult handleEdge() {
-        if (isConvertable(node)) {
-            return null;
-        }
-
-        // Go until we hit a converter to find the input.
-        RelNode input = node;
-        RelNode parent = node;
-        while (!((input = input.getInput(0)) instanceof GremlinToEnumerableConverter)) {
-            // TODO: Figure out how to push this into the traversal.
-            if (input instanceof EnumerableLimit) {
-                System.out.println("EnumerableLimit");
-            }
-            parent = input;
-        }
-        final RelDataType rowType = input.getRowType();
-        final List<String> fieldNames = rowType.getFieldNames();
-        //        final List<Map<String, Object>> results =
-        //                traversal.project(MAP_KEY, IN_V_ID_KEY, IN_V_LABEL_KEY, OUT_V_ID_KEY, OUT_V_LABEL_KEY, ID_KEY)
-        //                        .by(valueMap().with(WithOptions.tokens))
-        //                        .by(inV().id())
-        //                        .by(inV().label())
-        //                        .by(outV().id())
-        //                        .by(outV().label())
-        //                        .by(id())
-        //                        .limit(10000).toList(); // TODO limit here
-        traversal = traversal.project(MAP_KEY, IN_V_ID_KEY, IN_V_LABEL_KEY, OUT_V_ID_KEY, OUT_V_LABEL_KEY, ID_KEY)
-                .by(valueMap().with(WithOptions.tokens))
-                .by(inV().id())
-                .by(inV().label())
-                .by(outV().id())
-                .by(outV().label())
-                .by(id()).limit(RESULT_LIMIT);
-
-        //        final List<Map<String, Object>> results = (List<Map<String, Object>>) traversal.next(PAGE_SIZE);
-        //
-        //        final List<Object> rows = new ArrayList<>();
-        //        for (final Map<String, Object> map : results) {
-        //            final Map<Object, Object> mapResult = (Map<Object, Object>) map.get(MAP_KEY);
-        //            final String inVId = (String) map.get(IN_V_ID_KEY);
-        //            final String inVLabel = (String) map.get(IN_V_LABEL_KEY);
-        //            final String outVId = (String) map.get(OUT_V_ID_KEY);
-        //            final String outVLabel = (String) map.get(OUT_V_LABEL_KEY);
-        //            final String id = (String) map.get(ID_KEY);
-        //            int idx = 0;
-        //            final Object[] row = new Object[fieldNames.size()];
-        //            for (final String field : fieldNames) {
-        //                final String propName = TableUtil.getProperty(table, field);
-        //                if (propName.toUpperCase().endsWith("_ID")) {
-        //                    final String labelName = propName.toUpperCase().replace("_ID", "");
-        //                    if (inVLabel != null && labelName.toUpperCase().equals(inVLabel.toUpperCase())) {
-        //                        row[idx] = inVId;
-        //                    } else if (outVLabel != null && labelName.toUpperCase().equals(outVLabel.toUpperCase())) {
-        //                        row[idx] = outVId;
-        //                    } else if (labelName.toUpperCase().equals(table.label.toUpperCase())) {
-        //                        row[idx] = id;
-        //                    } else {
-        //                        row[idx] = null;
-        //                    }
-        //                } else {
-        //                    row[idx] = mapResult.getOrDefault(propName, null);
-        //                    if (row[idx] instanceof List) {
-        //                        row[idx] = ((List<?>) row[idx]).get(0);
-        //                    }
-        //                    row[idx] = TableUtil.convertType(row[idx], table.getColumn(field));
-        //                }
-        //                idx++;
-        //            }
-        //            rows.add(row);
-        //        }
-
-        sqlGremlinQueryResult = new SqlGremlinQueryResult(input.getCluster().getPlanner().getRoot().getRowType().getFieldNames(), table);
-
-        // Launch thread to continue grabbing results.
-        final ExecutorService executor = Executors.newSingleThreadExecutor(
-                new ThreadFactoryBuilder().setNameFormat("Data-Insert-Thread").setDaemon(true).build());
-
-        final Runnable pagination = new EdgePagination(input, parent);
-        executor.execute(pagination);
-        executor.shutdown();
-        try {
-            executor.awaitTermination(20, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        return sqlGremlinQueryResult;
-        //return convertResult(rows, input, parent, rowType);
     }
 
     public class EdgePagination implements Runnable {
@@ -472,12 +528,14 @@ public class SingleQueryExecutor {
 
         @Override
         public void run() {
+            System.out.println("EDGE PAGINATION START");
             // Monitor size of sqlGremlinQueryResult list and insert on the fly.
             while (traversal.hasNext()) {
+                System.out.println("EDGE PAGINATION BATCH START");
                 final RelDataType rowType = input.getRowType();
                 final List<String> fieldNames = rowType.getFieldNames();
 
-                final List<Map<String, Object>> results = (List<Map<String, Object>>) traversal.next(PAGE_SIZE);
+                final List<Map<String, Object>> results = (List<Map<String, Object>>) traversal.next(pageSize);
 
                 final List<Object> rows = new ArrayList<>();
                 for (final Map<String, Object> map : results) {
@@ -513,96 +571,12 @@ public class SingleQueryExecutor {
                     }
                     rows.add(row);
                 }
+                System.out.println("EDGE PAGINATION BATCH DONE");
                 convertAndInsertResult(sqlGremlinQueryResult, rows, input, parent, rowType);
             }
             // If we run out of traversal data (or hit our limit), stop inserting and signal to the result that it is done.
+            System.out.println("EDGE PAGINATION DONE");
             sqlGremlinQueryResult.assertIsEmpty();
         }
-    }
-
-    SqlGremlinQueryResult convertResult(final List<Object> rows, final RelNode input, final RelNode parent,
-                                        final RelDataType rowType) {
-        return new SqlGremlinQueryResult(input.getCluster().getPlanner().getRoot().getRowType().getFieldNames(), table);
-    }
-
-    // converts input row results and insert them into sqlGremlinQueryResult
-    void convertAndInsertResult(final SqlGremlinQueryResult sqlGremlinQueryResult, final List<Object> rows, final RelNode input, final RelNode parent,
-                                final RelDataType rowType) {
-        final GremlinTraversalScan traversalScan =
-                new GremlinTraversalScan(input.getCluster(), input.getTraitSet(), rowType, rows);
-
-        final GremlinTraversalToEnumerableRelConverter converter =
-                new GremlinTraversalToEnumerableRelConverter(input.getCluster(), input.getTraitSet(), traversalScan,
-                        rowType);
-        parent.replaceInput(0, converter);
-        final Bindable<?> bindable =
-                EnumerableInterpretable
-                        .toBindable(ImmutableMap.of(), null, (EnumerableRel) node, EnumerableRel.Prefer.ARRAY);
-
-        final Enumerable<?> enumerable = bindable.bind(null);
-        final List<?> rowResults = enumerable.toList();
-
-        final List<List<Object>> finalRowResult = new ArrayList<>();
-        for (final Object row : rowResults) {
-            final List<Object> convertedRow = new ArrayList<>();
-            if (row instanceof Object[]) {
-                convertedRow.addAll(Arrays.asList((Object[]) row));
-            } else {
-                convertedRow.add(row);
-            }
-            finalRowResult.add(convertedRow);
-        }
-        sqlGremlinQueryResult.addResults(finalRowResult);
-    }
-
-    @Getter
-    public static class SqlGremlinQueryResult {
-        private final List<String> columns;
-        private final List<String> columnTypes = new ArrayList<>();
-        private final List<List<Object>> rows = new ArrayList<>();
-        // blocking queue is shared between threads, here we use it so we can take elements out of it, while we put
-        // elements inside
-
-        // blocking queue is used when you have multiple threads put and take items from it, so do we want to use the queue
-        // in the way that set the queue size to page limit, then have launch a thread that continuously gets all results
-        // dumping them into the queue, then a full queue will block the thread from adding elements, then the results
-        // get dumped into a list to be returned? At that point the thread will continue to dump result
-
-        // or do we want an unbounded blocking queue, for which we will only block on empty, and then continuously put
-        // results into the queue, but have the thread monitor size of the result list and insert when we are not at capacity?
-        private final BlockingQueue<List<Object>> blockingQueueRows = new LinkedBlockingQueue<>();
-        private boolean isEmpty = false;
-
-        SqlGremlinQueryResult(final List<String> columns, final TableDef tableConfigs) {
-            this.columns = columns;
-
-            for (final String column : columns) {
-                TableColumn col = null;
-                if (tableConfigs.columns.containsKey(column)) {
-                    col = tableConfigs.getColumn(column);
-                }
-                columnTypes.add((col == null || col.getType() == null) ? "string" : col.getType());
-            }
-        }
-
-        public void assertIsEmpty() {
-            isEmpty = true;
-            blockingQueueRows.drainTo(rows);
-        }
-
-        // add result here needs to be the converted rows
-        public void addResults(final List<List<Object>> rows) {
-            blockingQueueRows.addAll(rows);
-        }
-
-        /*
-        public Object getResult() {
-            try {
-                return this.rows.take();
-            } catch (final InterruptedException ignored) {
-                return null;
-            }
-        }
-         */
     }
 }
