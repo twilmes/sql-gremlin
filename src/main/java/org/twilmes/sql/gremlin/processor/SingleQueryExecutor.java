@@ -39,6 +39,7 @@ import org.twilmes.sql.gremlin.rel.GremlinTraversalToEnumerableRelConverter;
 import org.twilmes.sql.gremlin.schema.TableColumn;
 import org.twilmes.sql.gremlin.schema.TableDef;
 import org.twilmes.sql.gremlin.schema.TableUtil;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -248,8 +249,7 @@ public class SingleQueryExecutor {
         final ExecutorService executor = Executors.newSingleThreadExecutor(
                 new ThreadFactoryBuilder().setNameFormat("Data-Insert-Thread").setDaemon(true).build());
 
-        final Runnable pagination = new VertexPagination(input, parent);
-        executor.execute(pagination);
+        executor.execute(new VertexPagination(input, parent));
         executor.shutdown();
 
         return sqlGremlinQueryResult;
@@ -288,8 +288,7 @@ public class SingleQueryExecutor {
         final ExecutorService executor = Executors.newSingleThreadExecutor(
                 new ThreadFactoryBuilder().setNameFormat("Data-Insert-Thread").setDaemon(true).build());
 
-        final Runnable pagination = new EdgePagination(input, parent);
-        executor.execute(pagination);
+        executor.execute(new EdgePagination(input, parent));
         executor.shutdown();
 
         return sqlGremlinQueryResult;
@@ -362,18 +361,18 @@ public class SingleQueryExecutor {
             blockingQueueRows.addAll(rows);
         }
 
-        public Object getResult() {
+        public Object getResult() throws SQLException {
             try {
                 synchronized (assertEmptyLock) {
-                    // pass current thread in, and interrupt in assertIsEmpty
+                    // Pass current thread in, and interrupt in assertIsEmpty.
                     this.currThread = Thread.currentThread();
                     if (isEmpty && blockingQueueRows.size() == 0) {
-                        return null;
+                        throw new SQLException("No more results.");
                     }
                 }
                 return this.blockingQueueRows.take();
             } catch (final InterruptedException ignored) {
-                return null;
+                throw new SQLException("No more results.");
             }
         }
     }
