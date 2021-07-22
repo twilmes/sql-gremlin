@@ -41,6 +41,55 @@ public class GremlinSchema extends AbstractSchema {
         this.config = config;
     }
 
+    // TODO: Fix this to better fit the design - this is a hack to get the required info.
+    public static TableDef getTableDef(final TableRelationship tableRelationship) {
+        final TableDef tableDef =
+                new TableDef(tableRelationship.getEdgeLabel(), tableRelationship.getEdgeLabel(), false);
+
+        // Set table columns.
+        if (tableRelationship.getColumns() != null) {
+            setTableColumns(tableDef, tableRelationship.getColumns());
+        }
+
+        // Get primary key for table def.
+        final TableColumn pk = getPrimaryKey(tableDef);
+        tableDef.columns.put(pk.getName(), pk);
+
+        // Get in and out foreign keys of edge.
+        final TableColumn inFk = getForeignKey(tableRelationship.getInTable());
+        final TableColumn outFk = getForeignKey(tableRelationship.getOutTable());
+        tableDef.columns.put(inFk.getName(), inFk);
+        tableDef.columns.put(outFk.getName(), outFk);
+        return tableDef;
+    }
+
+    static void setTableColumns(final TableDef tableDef, final List<TableColumn> tableColumns) {
+        tableColumns.forEach(column -> tableDef.columns.put(column.getName().toUpperCase(), column));
+    }
+
+    static TableColumn getPrimaryKey(final TableDef tableDef) {
+        final TableColumn pk = new TableColumn();
+        pk.setName(tableDef.label.toUpperCase() + "_ID");
+        pk.setType(tableDef.isVertex ? "long" : "string");
+        return pk;
+    }
+
+    static TableColumn getForeignKey(final TableRelationship tableRelationship) {
+        final TableColumn fk = new TableColumn();
+        final String fkName = tableRelationship.getEdgeLabel().toUpperCase() + "_ID";
+        fk.setName(fkName);
+        fk.setType("long");
+        return fk;
+    }
+
+    static TableColumn getForeignKey(final String vertexLabel) {
+        final TableColumn fk = new TableColumn();
+        final String fkName = vertexLabel.toUpperCase() + "_ID";
+        fk.setName(fkName);
+        fk.setType("long");
+        return fk;
+    }
+
     @Override
     protected Map<String, Table> getTableMap() {
         if (schema == null) {
@@ -66,15 +115,17 @@ public class GremlinSchema extends AbstractSchema {
         final GremlinTable gremlinTable = new GremlinTable(tableDef);
 
         // Set table columns.
-        setTableColumns(tableDef, tableRelationship.getColumns());
+        if (tableRelationship.getColumns() != null) {
+            setTableColumns(tableDef, tableRelationship.getColumns());
+        }
 
         // Get primary key for table def.
         final TableColumn pk = getPrimaryKey(tableDef);
         tableDef.columns.put(pk.getName(), pk);
 
         // Get in and out foreign keys of edge.
-        final TableColumn inFk = getForeignKey(tableRelationship, false, false);
-        final TableColumn outFk = getForeignKey(tableRelationship, true, false);
+        final TableColumn inFk = getForeignKey(tableRelationship.getInTable());
+        final TableColumn outFk = getForeignKey(tableRelationship.getOutTable());
         tableDef.columns.put(inFk.getName(), inFk);
         tableDef.columns.put(outFk.getName(), outFk);
 
@@ -94,56 +145,20 @@ public class GremlinSchema extends AbstractSchema {
 
         // Get relationship info for vertex.
         final List<TableRelationship> outRelationships = config.getRelationships().
-                stream().filter(rel -> rel.getOutTable().equals(tableConfig.getName()) &&
-                rel.getFkTable().equals(rel.getOutTable())).collect(toList());
+                stream().filter(rel -> rel.getOutTable().equals(tableConfig.getName())).collect(toList());
         final List<TableRelationship> inRelationships = config.getRelationships().
-                stream().filter(rel -> rel.getInTable().equals(tableConfig.getName()) &&
-                rel.getFkTable().equals(rel.getInTable())).collect(toList());
+                stream().filter(rel -> rel.getInTable().equals(tableConfig.getName())).collect(toList());
 
-        // Add foreign keys for the relationships.
-        if (tableConfig.getName().equals("website")) {
-            System.out.println();
-        }
         outRelationships.forEach(rel -> {
             tableDef.hasIn = true;
-            final TableColumn fk = getForeignKey(rel, true, true);
+            final TableColumn fk = getForeignKey(rel);
             tableDef.columns.put(fk.getName(), fk);
         });
         inRelationships.forEach(rel -> {
             tableDef.hasOut = true;
-            final TableColumn fk = getForeignKey(rel, false, false);
+            final TableColumn fk = getForeignKey(rel);
             tableDef.columns.put(fk.getName(), fk);
         });
-
         return gremlinTable;
-    }
-
-    void setTableColumns(final TableDef tableDef, final List<TableColumn> tableColumns) {
-        tableColumns.forEach(column -> tableDef.columns.put(column.getName().toUpperCase(), column));
-    }
-
-    TableColumn getPrimaryKey(final TableDef tableDef) {
-        final TableColumn pk = new TableColumn();
-        pk.setName(tableDef.label.toUpperCase() + "_ID");
-        pk.setType(tableDef.isVertex ? "long" : "string");
-        return pk;
-    }
-
-    TableColumn getForeignKey(final TableRelationship tableRelationship, final boolean isOutRelationship,
-                              final boolean checkOutLabel) {
-        final TableColumn fk = new TableColumn();
-        final String fkName;
-        if (isOutRelationship) {
-            // Out relationship sets FK to in vertex.
-            fkName = (checkOutLabel && tableRelationship.getInTable().equals(tableRelationship.getOutTable()) ?
-                    tableRelationship.getEdgeLabel().toUpperCase() :
-                    tableRelationship.getInTable().toUpperCase()) + "_ID";
-        } else {
-            // In relationship sets FK to out vertex.
-            fkName = tableRelationship.getOutTable().toUpperCase() + "_ID";
-        }
-        fk.setName(fkName);
-        fk.setType("long");
-        return fk;
     }
 }

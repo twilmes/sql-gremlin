@@ -182,7 +182,7 @@ SQL-Gremlin currently has the following known limitations.
 * Vertex labels are required.
 * Foreign keys are only populated in result sets if the foreign key vertex is present in the query.  Otherwise you'll just see a null.
 * Left outer joins, Subqueries, window functions, case statements, and unions are not supported.
-* SQL query is not fully pushed down into Gremlin. For example, group bys are performed by Calcite.  For an OLTP type query, or one that doesn't involve a huge resul set, this probably isn't an issue.  But it does have implications if you are having to materialize a huge result set and doing grouping after the fact (think an OLAP type grouping run against the SparkGraphComputer).
+* SQL query is not fully pushed down into Gremlin. For example, group bys are performed by Calcite.  For an OLTP type query, or one that doesn't involve a huge result set, this probably isn't an issue.  But it does have implications if you are having to materialize a huge result set and doing grouping after the fact (think an OLAP type grouping run against the SparkGraphComputer).
 * Multi and meta properties are not supported at this time.
 
 Roadmap

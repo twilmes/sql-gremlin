@@ -27,22 +27,19 @@ import org.twilmes.sql.gremlin.processor.visitors.RelVisitor;
  * Modified by lyndonb-bq on 05/17/21.
  */
 public class RelWalker {
-    private final RelVisitor visitor;
-
-    public RelWalker(final RelNode root, final RelVisitor visitor) {
-        this.visitor = visitor;
-        walk(root);
-    }
-
-    private void walk(final RelNode node) {
+    private static void walk(final RelNode node, RelVisitor visitor) {
         if (node == null) {
             return;
         }
 
         for (final RelNode child : node.getInputs()) {
-            walk(child);
+            walk(child, visitor);
         }
 
         visitor.visit(node);
+    }
+
+    public static void executeWalk(final RelNode root, final RelVisitor visitor) {
+        walk(root, visitor);
     }
 }
