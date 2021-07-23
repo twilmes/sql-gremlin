@@ -20,6 +20,8 @@
 package org.twilmes.sql.gremlin.processor.executors;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.calcite.util.Pair;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
@@ -27,10 +29,15 @@ import org.twilmes.sql.gremlin.SqlToGremlin;
 import org.twilmes.sql.gremlin.processor.visitors.JoinVisitor;
 import org.twilmes.sql.gremlin.schema.SchemaConfig;
 import org.twilmes.sql.gremlin.schema.TableDef;
+import org.twilmes.sql.gremlin.schema.TableUtil;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 /**
  * Executes queries that contain 1 or more joins.
@@ -40,30 +47,42 @@ import java.util.Map;
  */
 public class JoinQueryExecutor extends QueryExecutor {
     private final SchemaConfig schemaConfig;
+    private final JoinVisitor.JoinMetadata joinMetadata;
 
-    public JoinQueryExecutor(final SchemaConfig schemaConfig, final SqlToGremlin.GremlinParseInfo gremlinParseInfo) {
-        super(gremlinParseInfo);
+    public JoinQueryExecutor(final SchemaConfig schemaConfig, final SqlToGremlin.GremlinParseInfo gremlinParseInfo,
+                             final JoinVisitor.JoinMetadata joinMetadata) {
+        super(gremlinParseInfo, schemaConfig);
         this.schemaConfig = schemaConfig;
+        this.joinMetadata = joinMetadata;
     }
 
-    public SingleQueryExecutor.SqlGremlinQueryResult handle(final JoinVisitor.JoinMetadata joinMetadata,
-                                                            final GraphTraversalSource g) throws SQLException {
-        final List<Map<String, Object>> joinTraversal = getJoinTraversal(joinMetadata, g);
-        final List<Object[]> results =
-                joinResultsToList(joinTraversal, joinMetadata);
-        final List<String> columns = new ArrayList<>();
-        gremlinParseInfo.getGremlinSelectInfos().forEach(selectInfo -> columns.add(selectInfo.getMappedName()));
-        return new SqlGremlinQueryResult(columns, results,
+    @Override
+    public SqlGremlinQueryResult handle(final GraphTraversalSource g) throws SQLException {
+        final GraphTraversal<?, ?> traversal = getJoinTraversal(joinMetadata, g);
+
+        final List<String> fields =
+                gremlinParseInfo.getGremlinSelectInfos().stream().map(SqlToGremlin.GremlinSelectInfo::getMappedName)
+                        .collect(Collectors.toList());
+
+        final SqlGremlinQueryResult sqlGremlinQueryResult = new SqlGremlinQueryResult(fields,
                 ImmutableList.of(joinMetadata.getLeftTable(), joinMetadata.getRightTable()));
+
+        // Launch thread to continue grabbing results.
+        final ExecutorService executor = Executors.newSingleThreadExecutor(
+                new ThreadFactoryBuilder().setNameFormat("Data-Insert-Thread-%d").setDaemon(true).build());
+
+        executor.execute(new Pagination(new JoinDataReader(joinMetadata), traversal, sqlGremlinQueryResult));
+        executor.shutdown();
+
+        return sqlGremlinQueryResult;
     }
 
-    private List<Map<String, Object>> getJoinTraversal(final JoinVisitor.JoinMetadata joinMetadata,
-                                                       final GraphTraversalSource g) throws SQLException {
+    private GraphTraversal<?, ?> getJoinTraversal(final JoinVisitor.JoinMetadata joinMetadata,
+                                                  final GraphTraversalSource g) throws SQLException {
         // Hardcode vertex-vertex join for now.
         final String leftVertexLabel = joinMetadata.getLeftTable().label;
         final String rightVertexLabel = joinMetadata.getRightTable().label;
         final String edgeLabel = joinMetadata.getJoinColumn();
-        //input.getCluster().getPlanner().getRoot().getRowType().getFieldNames()
 
         final boolean leftInRightOut = schemaConfig.getRelationships().stream().anyMatch(
                 r -> r.getInTable().toLowerCase().equals(leftVertexLabel.toLowerCase()) &&
@@ -76,12 +95,11 @@ public class JoinQueryExecutor extends QueryExecutor {
         if (rightInLeftOut && leftInRightOut) {
             // TODO: Because we don't know if a bidirectional query will have enough results to reach out limit up front, we can
             // can't properly impose a limit. Right now this will return 2x the imposed LIMIT amount of queries.
-            final List<Map<String, Object>> result =
-                    executeJoinTraversal(joinMetadata.getLeftTable(), joinMetadata.getRightTable(),
-                            joinMetadata.getEdgeTable().label, g);
-            result.addAll(executeJoinTraversal(joinMetadata.getRightTable(), joinMetadata.getLeftTable(),
-                    joinMetadata.getEdgeTable().label, g));
-            return result;
+            // TODO: Come back and fix this so that it handles bidirectional properly.
+            return executeJoinTraversal(joinMetadata.getLeftTable(), joinMetadata.getRightTable(),
+                    joinMetadata.getEdgeTable().label, g);
+            // final GraphTraversal<?, ?> result2 = executeJoinTraversal(joinMetadata.getRightTable(), joinMetadata.getLeftTable(),
+            //         joinMetadata.getEdgeTable().label, g);
         } else if (rightInLeftOut) {
             return executeJoinTraversal(joinMetadata.getRightTable(), joinMetadata.getLeftTable(),
                     joinMetadata.getEdgeTable().label, g);
@@ -93,8 +111,8 @@ public class JoinQueryExecutor extends QueryExecutor {
         }
     }
 
-    private List<Map<String, Object>> executeJoinTraversal(final TableDef out, final TableDef in,
-                                                           final String edgeLabel, final GraphTraversalSource g)
+    private GraphTraversal<?, ?> executeJoinTraversal(final TableDef out, final TableDef in,
+                                                      final String edgeLabel, final GraphTraversalSource g)
             throws SQLException {
         final boolean inValues = gremlinParseInfo.getGremlinSelectInfos().stream()
                 .anyMatch(s -> in.label.toLowerCase().equals(s.getTable().toLowerCase()));
@@ -118,7 +136,7 @@ public class JoinQueryExecutor extends QueryExecutor {
             }
         } else if (outValues) {
             // Fastest way is to start at in and traverse to out.
-            traversal.hasLabel(in.label).in(edgeLabel).hasLabel(out.label)
+            traversal.hasLabel(in.label).out(edgeLabel).hasLabel(out.label)
                     .project(out.label)
                     .by(getSelectTraversal(out));
 
@@ -127,6 +145,47 @@ public class JoinQueryExecutor extends QueryExecutor {
         }
 
         imposeLimit(traversal);
-        return (List<Map<String, Object>>) traversal.toList();
+        return traversal;
+    }
+
+    class JoinDataReader implements GetRowFromMap {
+        final List<Pair<String, String>> tableColumnList = new ArrayList<>();
+
+        JoinDataReader(final JoinVisitor.JoinMetadata joinMetadata) throws SQLException {
+            for (final SqlToGremlin.GremlinSelectInfo gremlinSelectInfo : gremlinParseInfo.getGremlinSelectInfos()) {
+                if (gremlinSelectInfo.getTable().equalsIgnoreCase(joinMetadata.getLeftTable().label)) {
+                    tableColumnList.add(new Pair<>(joinMetadata.getLeftTable().label,
+                            TableUtil.getProperty(joinMetadata.getLeftTable(), gremlinSelectInfo.getColumn())));
+                } else if (gremlinSelectInfo.getTable().equalsIgnoreCase(joinMetadata.getRightTable().label)) {
+                    tableColumnList.add(new Pair<>(joinMetadata.getRightTable().label,
+                            TableUtil.getProperty(joinMetadata.getRightTable(), gremlinSelectInfo.getColumn())));
+                } else {
+                    throw new SQLException("Error, cannot marshal results, incorrect metadata.");
+                }
+            }
+        }
+
+        @Override
+        public Object[] execute(final Map<String, Object> map) {
+            final Object[] row = new Object[tableColumnList.size()];
+            int i = 0;
+            for (final Pair<String, String> tableColumn : tableColumnList) {
+                final Optional<String> tableKey =
+                        map.keySet().stream().filter(key -> key.equalsIgnoreCase(tableColumn.left)).findFirst();
+                if (!tableKey.isPresent()) {
+                    row[i++] = null;
+                    continue;
+                }
+
+                final Optional<String> columnKey = ((Map<String, Object>) map.get(tableKey.get())).keySet().stream()
+                        .filter(key -> key.equalsIgnoreCase(tableColumn.right)).findFirst();
+                if (!columnKey.isPresent()) {
+                    row[i++] = null;
+                    continue;
+                }
+                row[i++] = ((Map<String, Object>) map.get(tableKey.get())).getOrDefault(columnKey.get(), null);
+            }
+            return row;
+        }
     }
 }

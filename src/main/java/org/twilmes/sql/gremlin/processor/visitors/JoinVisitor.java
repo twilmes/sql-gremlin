@@ -24,14 +24,11 @@ import lombok.Getter;
 import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
 import org.apache.calcite.rel.RelNode;
 import org.twilmes.sql.gremlin.ParseException;
-import org.twilmes.sql.gremlin.rel.GremlinTableScan;
 import org.twilmes.sql.gremlin.schema.SchemaConfig;
 import org.twilmes.sql.gremlin.schema.TableDef;
 import org.twilmes.sql.gremlin.schema.TableRelationship;
-import java.util.ArrayList;
-import java.util.List;
+import org.twilmes.sql.gremlin.schema.TableUtil;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static org.twilmes.sql.gremlin.schema.GremlinSchema.getTableDef;
 
@@ -58,9 +55,10 @@ public class JoinVisitor implements RelVisitor {
             throw new ParseException("Only inner joins are supported.");
         }
         final RelNode left = join.getLeft();
-        final TableDef leftTableDef = ((GremlinTableScan) left.getInput(0)).getGremlinTable().getTableDef();
         final RelNode right = join.getRight();
-        final TableDef rightTableDef = ((GremlinTableScan) right.getInput(0)).getGremlinTable().getTableDef();
+
+        final TableDef leftTableDef = TableUtil.getTableDef(left);
+        final TableDef rightTableDef = TableUtil.getTableDef(right);
         final String leftKey = left.getRowType().getFieldList().get(join.analyzeCondition().leftKeys.get(0)).getKey();
         final String rightKey =
                 right.getRowType().getFieldList().get(join.analyzeCondition().rightKeys.get(0)).getKey();

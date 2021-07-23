@@ -38,13 +38,13 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.twilmes.sql.gremlin.processor.QueryPlanner;
 import org.twilmes.sql.gremlin.processor.RelWalker;
-import org.twilmes.sql.gremlin.processor.TraversalBuilder;
 import org.twilmes.sql.gremlin.processor.executors.JoinQueryExecutor;
+import org.twilmes.sql.gremlin.processor.executors.QueryExecutor;
 import org.twilmes.sql.gremlin.processor.executors.SingleQueryExecutor;
+import org.twilmes.sql.gremlin.processor.executors.SqlGremlinQueryResult;
 import org.twilmes.sql.gremlin.processor.visitors.JoinVisitor;
 import org.twilmes.sql.gremlin.processor.visitors.ScanVisitor;
 import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
@@ -95,7 +95,7 @@ public class SqlToGremlin {
         return queryPlanner.explain(node);
     }
 
-    public SingleQueryExecutor.SqlGremlinQueryResult execute(final String sql) throws SQLException {
+    public SqlGremlinQueryResult execute(final String sql) throws SQLException {
         final QueryPlanner queryPlanner = new QueryPlanner(frameworkConfig);
         queryPlanner.plan(sql);
         final RelNode node = queryPlanner.getTransform();
@@ -113,7 +113,12 @@ public class SqlToGremlin {
 
             final SqlNodeList sqlNodeList = sqlSelect.getSelectList();
             for (final SqlNode sqlSelectNode : sqlNodeList.getList()) {
-                if (sqlSelectNode instanceof SqlBasicCall) {
+                if (sqlSelectNode instanceof SqlIdentifier) {
+                    SqlIdentifier sqlIdentifier = (SqlIdentifier) sqlSelectNode;
+                    final String table = sqlIdentifier.names.get(0);
+                    final String column = sqlIdentifier.names.get(1);
+                    gremlinSelectInfoList.add(new GremlinSelectInfo(table, column, column));
+                } else if (sqlSelectNode instanceof SqlBasicCall) {
                     final SqlBasicCall sqlBasicCall = (SqlBasicCall) sqlSelectNode;
                     final SqlNode[] sqlBasicCallNodes = sqlBasicCall.getOperands();
                     if (sqlBasicCallNodes.length > 0) {
@@ -156,23 +161,21 @@ public class SqlToGremlin {
         final Map<GremlinToEnumerableConverter, List<RelNode>> scanMap = scanVisitor.getScanMap();
 
         // Simple case, no joins.
+        final QueryExecutor queryExecutor;
         if (scanMap.size() == 1) {
             final TableDef table = TableUtil.getTableDef(scanMap.values().iterator().next());
             if (table == null) {
                 throw new SQLException("Failed to find table definition.");
             }
-            final GraphTraversal<?, ?> traversal = table.isVertex ? g.V() : g.E();
-            TraversalBuilder.appendTraversal(scanMap.values().iterator().next(), traversal);
 
-            final SingleQueryExecutor queryExec = new SingleQueryExecutor(node, traversal, table, gremlinParseInfo);
-            return table.isVertex ? queryExec.handleVertex() : queryExec.handleEdge();
+            queryExecutor = new SingleQueryExecutor(schemaConfig, gremlinParseInfo, table);
         } else {
             final JoinVisitor joinVisitor = new JoinVisitor(schemaConfig);
             RelWalker.executeWalk(root, joinVisitor);
 
-            final JoinQueryExecutor queryExec = new JoinQueryExecutor(schemaConfig, gremlinParseInfo);
-            return queryExec.handle(joinVisitor.getJoinMetadata(), g);
+            queryExecutor = new JoinQueryExecutor(schemaConfig, gremlinParseInfo, joinVisitor.getJoinMetadata());
         }
+        return queryExecutor.handle(g);
     }
 
     @AllArgsConstructor

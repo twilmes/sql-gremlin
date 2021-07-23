@@ -20,23 +20,19 @@
 package org.twilmes.sql.gremlin.processor.executors;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import org.apache.calcite.adapter.enumerable.EnumerableInterpretable;
-import org.apache.calcite.adapter.enumerable.EnumerableRel;
-import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.runtime.Bindable;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.twilmes.sql.gremlin.SqlToGremlin;
-import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
-import org.twilmes.sql.gremlin.rel.GremlinTraversalScan;
-import org.twilmes.sql.gremlin.rel.GremlinTraversalToEnumerableRelConverter;
+import org.twilmes.sql.gremlin.schema.SchemaConfig;
 import org.twilmes.sql.gremlin.schema.TableDef;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
-
-import static org.twilmes.sql.gremlin.processor.RelUtils.isConvertable;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 /**
  * Executes a query that does not have any joins.
@@ -47,74 +43,70 @@ import static org.twilmes.sql.gremlin.processor.RelUtils.isConvertable;
  * Modified by lyndonb-bq on 05/17/21.
  */
 public class SingleQueryExecutor extends QueryExecutor {
-    private final RelNode node;
-    private final GraphTraversal<?, ?> traversal;
-    private final TableDef table;
+    SchemaConfig schemaConfig;
+    TableDef tableDef;
 
-    public SingleQueryExecutor(final RelNode node, final GraphTraversal<?, ?> traversal, final TableDef table,
-                               final SqlToGremlin.GremlinParseInfo gremlinParseInfo) {
-        super(gremlinParseInfo);
-        this.node = node;
-        this.traversal = traversal;
-        this.table = table;
+    public SingleQueryExecutor(final SchemaConfig schemaConfig, final SqlToGremlin.GremlinParseInfo gremlinParseInfo,
+                               final TableDef tableDef) {
+        super(gremlinParseInfo, schemaConfig);
+        this.schemaConfig = schemaConfig;
+        this.tableDef = tableDef;
     }
 
-    public SqlGremlinQueryResult handleVertex() {
-        if (isConvertable(node)) {
-            return null;
-        }
+    @Override
+    public SqlGremlinQueryResult handle(final GraphTraversalSource g) throws SQLException {
+        final GraphTraversal<?, ?> traversal =
+                (tableDef.isVertex ? g.V() : g.E()).hasLabel(tableDef.label).project(tableDef.label)
+                        .by(getSelectTraversal(tableDef));
+        imposeLimit(traversal);
 
-        // go until we hit a converter to find the input
-        RelNode input = node;
-        RelNode parent = node;
-        while (!((input = input.getInput(0)) instanceof GremlinToEnumerableConverter)) {
-            parent = input;
-        }
-        final RelDataType rowType = input.getRowType();
-        final List<String> fieldNames = rowType.getFieldNames();
-        appendGetAllVertexResultsProject(table, traversal);
-        final List<Map<String, Object>> results = (List<Map<String, Object>>) traversal.limit(10000).toList();
-        final List<Object> rows = vertexResultsToList(results, fieldNames, table);
-        return convertResult(rows, input, parent, rowType);
+        final List<String> fields =
+                gremlinParseInfo.getGremlinSelectInfos().stream().map(SqlToGremlin.GremlinSelectInfo::getMappedName)
+                        .collect(Collectors.toList());
+        final SqlGremlinQueryResult sqlGremlinQueryResult =
+                new SqlGremlinQueryResult(fields, ImmutableList.of(tableDef));
+
+        // Launch thread to continue grabbing results.
+        final ExecutorService executor = Executors.newSingleThreadExecutor(
+                new ThreadFactoryBuilder().setNameFormat("Data-Insert-Thread-%d").setDaemon(true).build());
+
+        executor.execute(new Pagination(new SimpleDataReader(tableDef), traversal, sqlGremlinQueryResult));
+        executor.shutdown();
+
+        return sqlGremlinQueryResult;
     }
 
-    public SqlGremlinQueryResult handleEdge() {
-        if (isConvertable(node)) {
-            return null;
+    class SimpleDataReader implements GetRowFromMap {
+        final String tableName;
+        final List<String> columnNames;
+
+        SimpleDataReader(final TableDef tableDef) {
+            tableName = tableDef.label;
+            columnNames = gremlinParseInfo.getGremlinSelectInfos().stream()
+                    .map(s -> tableDef.getColumn(s.getColumn()).getName()).collect(Collectors.toList());
         }
 
-        // Go until we hit a converter to find the input.
-        RelNode input = node;
-        RelNode parent = node;
-        while (!((input = input.getInput(0)) instanceof GremlinToEnumerableConverter)) {
-            parent = input;
+        @Override
+        public Object[] execute(final Map<String, Object> map) {
+            final Object[] row = new Object[columnNames.size()];
+            int i = 0;
+            for (final String column : columnNames) {
+                final Optional<String> tableKey =
+                        map.keySet().stream().filter(key -> key.equalsIgnoreCase(tableName)).findFirst();
+                if (!tableKey.isPresent()) {
+                    row[i++] = null;
+                    continue;
+                }
+
+                final Optional<String> columnKey = ((Map<String, Object>) map.get(tableKey.get())).keySet().stream()
+                        .filter(key -> key.equalsIgnoreCase(column)).findFirst();
+                if (!columnKey.isPresent()) {
+                    row[i++] = null;
+                    continue;
+                }
+                row[i++] = ((Map<String, Object>) map.get(tableKey.get())).getOrDefault(columnKey.get(), null);
+            }
+            return row;
         }
-        final RelDataType rowType = input.getRowType();
-        final List<String> fieldNames = rowType.getFieldNames();
-        appendGetAllEdgeResultsProject(traversal);
-        final List<Map<String, Object>> results =
-                (List<Map<String, Object>>) traversal.limit(10000).toList();
-        final List<Object> rows = edgeResultToList(results, fieldNames, table);
-        return convertResult(rows, input, parent, rowType);
     }
-
-    SqlGremlinQueryResult convertResult(final List<Object> rows, final RelNode input, final RelNode parent,
-                                        final RelDataType rowType) {
-        final GremlinTraversalScan traversalScan =
-                new GremlinTraversalScan(input.getCluster(), input.getTraitSet(), rowType, rows);
-
-        final GremlinTraversalToEnumerableRelConverter converter =
-                new GremlinTraversalToEnumerableRelConverter(input.getCluster(), input.getTraitSet(), traversalScan,
-                        rowType);
-        parent.replaceInput(0, converter);
-        final Bindable<?> bindable =
-                EnumerableInterpretable
-                        .toBindable(ImmutableMap.of(), null, (EnumerableRel) node, EnumerableRel.Prefer.ARRAY);
-
-        final Enumerable<?> enumerable = bindable.bind(null);
-        final List<?> rowResults = enumerable.toList();
-        return new SqlGremlinQueryResult(input.getCluster().getPlanner().getRoot().getRowType().getFieldNames(),
-                rowResults, ImmutableList.of(table));
-    }
-
 }
