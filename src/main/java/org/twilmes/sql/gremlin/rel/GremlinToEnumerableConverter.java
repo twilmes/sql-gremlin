@@ -19,24 +19,19 @@
 
 package org.twilmes.sql.gremlin.rel;
 
-/**
- * Created by twilmes on 9/25/15.
- */
-
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptCost;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import java.util.List;
 
 /**
- * Relational expression representing a scan of a table in a TinkerPop data source.
+ * Created by twilmes on 9/25/15.
  * Modified by lyndonb-bq on 05/17/21.
+ * Relational expression representing a scan of a table in a TinkerPop data source.
  */
 public class GremlinToEnumerableConverter
         extends ConverterImpl
@@ -56,6 +51,7 @@ public class GremlinToEnumerableConverter
 
     @Override
     public Result implement(final EnumerableRelImplementor implementor, final Prefer pref) {
+        System.out.println("Implement");
         return null;
     }
 }

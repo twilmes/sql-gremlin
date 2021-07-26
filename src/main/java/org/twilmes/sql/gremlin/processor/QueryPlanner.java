@@ -19,6 +19,7 @@
 
 package org.twilmes.sql.gremlin.processor;
 
+import lombok.Getter;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
@@ -36,25 +37,30 @@ import org.twilmes.sql.gremlin.ParseException;
  * Modified by lyndonb-bq on 05/17/21.
  */
 public class QueryPlanner {
-
     private final Planner planner;
+    @Getter
+    private SqlNode parse;
+    @Getter
+    private SqlNode validate;
+    @Getter
+    private RelRoot convert;
+    @Getter
+    private RelTraitSet traitSet;
+    @Getter
+    private RelNode transform;
 
     public QueryPlanner(final FrameworkConfig frameworkConfig) {
         this.planner = Frameworks.getPlanner(frameworkConfig);
     }
 
-    public RelNode plan(String sql) {
+    public void plan(final String sql) {
         try {
-            final SqlNode parse = planner.parse(sql);
-
-            final SqlNode validate = planner.validate(parse);
-            final RelRoot convert = planner.rel(validate);
-
-            // final RelNode convert = planner.convert(validate);
-            final RelTraitSet traitSet = planner.getEmptyTraitSet()
+            parse = planner.parse(sql);
+            validate = planner.validate(parse);
+            convert = planner.rel(validate);
+            traitSet = planner.getEmptyTraitSet()
                     .replace(EnumerableConvention.INSTANCE);
-
-            return planner.transform(0, traitSet, convert.project());
+            transform = planner.transform(0, traitSet, convert.project());
         } catch (final Exception e) {
             throw new ParseException("Error parsing: " + sql + " - " + e, e);
         }

@@ -53,12 +53,11 @@ public class FieldMapVisitor implements RelVisitor {
             fieldMap.put(join, new HashMap<>());
         }
 
-        // TODO: Fix the EnumerableCalc logic for Joins.
         final List<String> leftFields = join.getRowType().getFieldNames().
                 subList(0, left.getRowType().getFieldCount());
         if (left instanceof GremlinToEnumerableConverter) {
             leftFields.forEach(field -> fieldMap.get(join).put(field, (GremlinToEnumerableConverter) left));
-        } else if (left instanceof EnumerableHashJoin){
+        } else if (left instanceof EnumerableHashJoin) {
             // we still need to figure out these fields...so walk on down
             int col = 0;
             for (final String field : leftFields) {

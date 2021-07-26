@@ -42,9 +42,6 @@ public class TableDef {
         this.isVertex = isVertex;
     }
 
-    TableDef(){
-    }
-
     public TableColumn getColumn(final String column) {
         final Optional<TableColumn> res = this.columns.values().
                 stream().filter(col -> column.toLowerCase().equals(col.getName().toLowerCase())).

@@ -26,7 +26,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Pair;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.util.Gremlin;
 import org.twilmes.sql.gremlin.processor.TraversalBuilder;
 import org.twilmes.sql.gremlin.rel.GremlinToEnumerableConverter;
 import java.util.ArrayList;
@@ -52,7 +51,8 @@ public class TraversalVisitor implements RelVisitor {
     @Getter
     private final Map<String, GraphTraversal<?, ?>> tableTraversalMap = new HashMap<>();
     @Getter
-    private final List<Pair<String, String>> joinPairs = new ArrayList<>();
+    private final List<Pair<Pair<String, GraphTraversal<?, ?>>, Pair<String, GraphTraversal<?, ?>>>> joinPairs =
+            new ArrayList<>();
     private Integer id = 0;
 
     public TraversalVisitor(final GraphTraversalSource traversalSource,
@@ -90,6 +90,7 @@ public class TraversalVisitor implements RelVisitor {
             final List<String> leftJoinFields = joinFields.subList(0, left.getRowType().getFieldCount());
             final String leftAliasedColumn = leftJoinFields.get(join.analyzeCondition().leftKeys.get(0));
             left = fieldMap.get(join).get(leftAliasedColumn);
+            tableTraversalMap.put(getTableId((GremlinToEnumerableConverter) left), null);
         }
 
         if (right instanceof EnumerableCalc) {
@@ -104,9 +105,11 @@ public class TraversalVisitor implements RelVisitor {
             traversals.add(rightTraversal);
             tableTraversalMap.put(getTableId((GremlinToEnumerableConverter) right), rightTraversal);
         } else {
-            final List<String> rightJoinFields = joinFields.subList(left.getRowType().getFieldCount(), joinFields.size());
+            final List<String> rightJoinFields =
+                    joinFields.subList(left.getRowType().getFieldCount(), joinFields.size());
             final String rightAliasedColumn = rightJoinFields.get(join.analyzeCondition().rightKeys.get(0));
             right = fieldMap.get(join).get(rightAliasedColumn);
+            tableTraversalMap.put(getTableId((GremlinToEnumerableConverter) right), null);
         }
 
         final GremlinToEnumerableConverter leftConverter = (GremlinToEnumerableConverter) left;
@@ -115,7 +118,8 @@ public class TraversalVisitor implements RelVisitor {
         final String leftId = getTableId(leftConverter);
         final String rightId = getTableId(rightConverter);
 
-        joinPairs.add(new Pair<>(leftId, rightId));
+        joinPairs.add(new Pair<>(new Pair<>(leftId, tableTraversalMap.get(leftId)),
+                new Pair<>(rightId, tableTraversalMap.get(rightId))));
     }
 
     private String getTableId(final GremlinToEnumerableConverter converter) {
