@@ -39,9 +39,9 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public abstract class QueryExecutor {
     private static final int DEFAULT_PAGE_SIZE = 1000;
-    private static final int pageSize = DEFAULT_PAGE_SIZE;
     protected final SqlToGremlin.GremlinParseInfo gremlinParseInfo;
     final SchemaConfig schemaConfig;
+    private final int pageSize = DEFAULT_PAGE_SIZE;
 
     public abstract SqlGremlinQueryResult handle(GraphTraversalSource g) throws SQLException;
 
