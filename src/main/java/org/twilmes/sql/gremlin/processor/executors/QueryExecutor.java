@@ -133,15 +133,15 @@ public abstract class QueryExecutor {
                     graphTraversal.by(__.id());
                 } else {
                     if (tableDef.isVertex) {
-                        final List<TableRelationship> vertices = schemaConfig.getRelationships().stream()
+                        final List<TableRelationship> edges = schemaConfig.getRelationships().stream()
                                 .filter(r -> column.toLowerCase().startsWith(r.getEdgeLabel().toLowerCase()))
                                 .collect(Collectors.toList());
 
-                        final Optional<String> inVertex = vertices.stream()
+                        final Optional<String> inVertex = edges.stream()
                                 .filter(r -> r.getOutTable().equalsIgnoreCase(tableDef.label))
                                 .map(TableRelationship::getEdgeLabel).findFirst();
-                        final Optional<String> outVertex = vertices.stream()
-                                .filter(r -> r.getOutTable().equalsIgnoreCase(tableDef.label))
+                        final Optional<String> outVertex = edges.stream()
+                                .filter(r -> r.getInTable().equalsIgnoreCase(tableDef.label))
                                 .map(TableRelationship::getEdgeLabel).findFirst();
                         if (inVertex.isPresent()) {
                             graphTraversal.by(__.inE().hasLabel(inVertex.get()).id());
