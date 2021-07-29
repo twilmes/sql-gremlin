@@ -23,6 +23,8 @@ import lombok.AllArgsConstructor;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.twilmes.sql.gremlin.SqlToGremlin;
 import org.twilmes.sql.gremlin.schema.SchemaConfig;
 import org.twilmes.sql.gremlin.schema.TableDef;
@@ -38,6 +40,7 @@ import java.util.stream.Collectors;
 
 @AllArgsConstructor
 public abstract class QueryExecutor {
+    private static final Logger LOGGER = LoggerFactory.getLogger(QueryExecutor.class);
     private static final int DEFAULT_PAGE_SIZE = 1000;
     protected final SqlToGremlin.GremlinParseInfo gremlinParseInfo;
     final SchemaConfig schemaConfig;
@@ -188,14 +191,19 @@ public abstract class QueryExecutor {
 
         @Override
         public void run() {
-            while (traversal.hasNext()) {
-                final List<Object> rows = new ArrayList<>();
-                traversal.next(pageSize)
-                        .forEach(map -> rows.add(getRowFromMap.execute((Map<String, Object>) map)));
-                convertAndInsertResult(sqlGremlinQueryResult, rows);
+            try {
+                while (traversal.hasNext()) {
+                    final List<Object> rows = new ArrayList<>();
+                    traversal.next(pageSize)
+                            .forEach(map -> rows.add(getRowFromMap.execute((Map<String, Object>) map)));
+                    convertAndInsertResult(sqlGremlinQueryResult, rows);
+                }
+                // If we run out of traversal data (or hit our limit), stop and signal to the result that it is done.
+                sqlGremlinQueryResult.assertIsEmpty();
+            } catch (Exception e) {
+                LOGGER.error("Encountered exception", e);
+                sqlGremlinQueryResult.assertIsEmpty();
             }
-            // If we run out of traversal data (or hit our limit), stop and signal to the result that it is done.
-            sqlGremlinQueryResult.assertIsEmpty();
         }
     }
 }
