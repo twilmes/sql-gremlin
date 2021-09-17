@@ -114,7 +114,7 @@ public class SqlToGremlin {
             final SqlNodeList sqlNodeList = sqlSelect.getSelectList();
             for (final SqlNode sqlSelectNode : sqlNodeList.getList()) {
                 if (sqlSelectNode instanceof SqlIdentifier) {
-                    SqlIdentifier sqlIdentifier = (SqlIdentifier) sqlSelectNode;
+                    final SqlIdentifier sqlIdentifier = (SqlIdentifier) sqlSelectNode;
                     final String table = sqlIdentifier.names.get(0);
                     final String column = sqlIdentifier.names.get(1);
                     gremlinSelectInfoList.add(new GremlinSelectInfo(table, column, column));
