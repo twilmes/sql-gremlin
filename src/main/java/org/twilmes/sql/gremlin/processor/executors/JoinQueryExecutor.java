@@ -97,14 +97,17 @@ public class JoinQueryExecutor extends QueryExecutor {
             // can't properly impose a limit. Right now this will return 2x the imposed LIMIT amount of queries.
             // TODO: Come back and fix this so that it handles bidirectional properly.
             return executeJoinTraversal(joinMetadata.getLeftTable(), joinMetadata.getRightTable(),
+                    joinMetadata.getLeftRename(), joinMetadata.getRightRename(),
                     joinMetadata.getEdgeTable().label, g);
             // final GraphTraversal<?, ?> result2 = executeJoinTraversal(joinMetadata.getRightTable(), joinMetadata.getLeftTable(),
             //         joinMetadata.getEdgeTable().label, g);
         } else if (rightInLeftOut) {
             return executeJoinTraversal(joinMetadata.getRightTable(), joinMetadata.getLeftTable(),
+                    joinMetadata.getRightRename(), joinMetadata.getLeftRename(),
                     joinMetadata.getEdgeTable().label, g);
         } else if (leftInRightOut) {
             return executeJoinTraversal(joinMetadata.getRightTable(), joinMetadata.getLeftTable(),
+                    joinMetadata.getRightRename(), joinMetadata.getLeftRename(),
                     joinMetadata.getEdgeTable().label, g);
         } else {
             throw new SQLException("Failed to find in and out directionality of query.");
@@ -112,6 +115,7 @@ public class JoinQueryExecutor extends QueryExecutor {
     }
 
     private GraphTraversal<?, ?> executeJoinTraversal(final TableDef out, final TableDef in,
+                                                      final String outRename, final String inRename,
                                                       final String edgeLabel, final GraphTraversalSource g)
             throws SQLException {
         final boolean inValues = gremlinParseInfo.getGremlinSelectInfos().stream()
@@ -125,19 +129,19 @@ public class JoinQueryExecutor extends QueryExecutor {
                 final GraphTraversal<?, ?> graphTraversal1 = __.out(edgeLabel);
                 appendSelectTraversal(out, graphTraversal1);
                 traversal.hasLabel(out.label).in(edgeLabel).hasLabel(in.label)
-                        .project(in.label, out.label)
+                        .project(outRename, inRename)
                         .by(getSelectTraversal(in))
                         .by(graphTraversal1);
             } else {
                 // Fastest way is to start at out and traverse to in.
                 traversal.hasLabel(out.label).in(edgeLabel).hasLabel(in.label)
-                        .project(in.label)
+                        .project(inRename)
                         .by(getSelectTraversal(in));
             }
         } else if (outValues) {
             // Fastest way is to start at in and traverse to out.
             traversal.hasLabel(in.label).out(edgeLabel).hasLabel(out.label)
-                    .project(out.label)
+                    .project(outRename)
                     .by(getSelectTraversal(out));
 
         } else {
@@ -153,11 +157,11 @@ public class JoinQueryExecutor extends QueryExecutor {
 
         JoinDataReader(final JoinVisitor.JoinMetadata joinMetadata) throws SQLException {
             for (final SqlToGremlin.GremlinSelectInfo gremlinSelectInfo : gremlinParseInfo.getGremlinSelectInfos()) {
-                if (gremlinSelectInfo.getTable().equalsIgnoreCase(joinMetadata.getLeftTable().label)) {
-                    tableColumnList.add(new Pair<>(joinMetadata.getLeftTable().label,
+                if (gremlinSelectInfo.getTable().equalsIgnoreCase(joinMetadata.getLeftRename())) {
+                    tableColumnList.add(new Pair<>(joinMetadata.getLeftRename(),
                             TableUtil.getProperty(joinMetadata.getLeftTable(), gremlinSelectInfo.getColumn())));
-                } else if (gremlinSelectInfo.getTable().equalsIgnoreCase(joinMetadata.getRightTable().label)) {
-                    tableColumnList.add(new Pair<>(joinMetadata.getRightTable().label,
+                } else if (gremlinSelectInfo.getTable().equalsIgnoreCase(joinMetadata.getRightRename())) {
+                    tableColumnList.add(new Pair<>(joinMetadata.getRightRename(),
                             TableUtil.getProperty(joinMetadata.getRightTable(), gremlinSelectInfo.getColumn())));
                 } else {
                     throw new SQLException("Error, cannot marshal results, incorrect metadata.");

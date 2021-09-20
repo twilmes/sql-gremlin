@@ -24,11 +24,14 @@ import lombok.Getter;
 import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
 import org.apache.calcite.rel.RelNode;
 import org.twilmes.sql.gremlin.ParseException;
+import org.twilmes.sql.gremlin.SqlToGremlin;
 import org.twilmes.sql.gremlin.schema.SchemaConfig;
 import org.twilmes.sql.gremlin.schema.TableDef;
 import org.twilmes.sql.gremlin.schema.TableRelationship;
 import org.twilmes.sql.gremlin.schema.TableUtil;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.twilmes.sql.gremlin.schema.GremlinSchema.getTableDef;
 
@@ -37,11 +40,13 @@ import static org.twilmes.sql.gremlin.schema.GremlinSchema.getTableDef;
  */
 public class JoinVisitor implements RelVisitor {
     private final SchemaConfig schemaConfig;
+    private final List<SqlToGremlin.GremlinSelectInfo> selectInfo;
     JoinMetadata joinMetadata = null;
 
 
-    public JoinVisitor(final SchemaConfig schemaConfig) {
+    public JoinVisitor(final SchemaConfig schemaConfig, final List<SqlToGremlin.GremlinSelectInfo> selectInfo) {
         this.schemaConfig = schemaConfig;
+        this.selectInfo = selectInfo;
     }
 
     @Override
@@ -79,7 +84,14 @@ public class JoinVisitor implements RelVisitor {
             throw new ParseException("Multiple joins are not supported.");
         }
 
-        joinMetadata = new JoinMetadata(leftTableDef, rightTableDef, getTableDef(tableRelationshipOptional.get()),
+        final List<String> tables = selectInfo.stream().map(SqlToGremlin.GremlinSelectInfo::getTable).distinct()
+                .collect(Collectors.toList());
+        if (tables.size() != 2) {
+            throw new ParseException("Join contains more than 2 tables.");
+        }
+
+        joinMetadata = new JoinMetadata(leftTableDef, tables.get(0), rightTableDef, tables.get(1),
+                getTableDef(tableRelationshipOptional.get()),
                 tableRelationshipOptional.get().getEdgeLabel(), join.getJoinType().lowerName);
     }
 
@@ -94,7 +106,9 @@ public class JoinVisitor implements RelVisitor {
     @Getter
     public static class JoinMetadata {
         private final TableDef leftTable;
+        private final String leftRename;
         private final TableDef rightTable;
+        private final String rightRename;
         private final TableDef edgeTable;
         private final String joinColumn;
         private final String joinType;

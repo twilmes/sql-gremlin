@@ -96,16 +96,25 @@ public abstract class QueryExecutor {
                                 .filter(r -> r.getOutTable().equalsIgnoreCase(tableDef.label))
                                 .map(TableRelationship::getEdgeLabel).findFirst();
                         if (inVertex.isPresent()) {
-                            graphTraversal.by(__.inE().hasLabel(inVertex.get()).id());
+                            graphTraversal.by(
+                                    __.coalesce(
+                                            __.inE().hasLabel(inVertex.get()).id().fold(),
+                                            __.constant(new ArrayList<>())
+                                    ));
                         } else if (outVertex.isPresent()) {
-                            graphTraversal.by(__.outE().hasLabel(outVertex.get()).id());
+                            graphTraversal.by(
+                                    __.coalesce(
+                                            __.outE().hasLabel(outVertex.get()).fold(),
+                                            __.constant(new ArrayList<>())
+                                    ));
                         } else {
-                            graphTraversal.by(__.constant(""));
+                            graphTraversal.by(__.constant(new ArrayList<>()));
                         }
                     }
                 }
             } else {
-                graphTraversal.by(__.values(column));
+                graphTraversal.by(
+                        __.choose(__.has(column), __.values(column), __.constant("")));
             }
         }
     }
@@ -149,17 +158,17 @@ public abstract class QueryExecutor {
                         if (inVertex.isPresent()) {
                             graphTraversal.by(
                                     __.coalesce(
-                                            __.inE().hasLabel(inVertex.get()).id(),
-                                            __.constant("")
+                                            __.inE().hasLabel(inVertex.get()).id().fold(),
+                                            __.constant(new ArrayList<>())
                                     ));
                         } else if (outVertex.isPresent()) {
                             graphTraversal.by(
                                     __.coalesce(
-                                            __.outE().hasLabel(outVertex.get()).id(),
-                                            __.constant("")
+                                            __.outE().hasLabel(outVertex.get()).fold(),
+                                            __.constant(new ArrayList<>())
                                     ));
                         } else {
-                            graphTraversal.by(__.constant(""));
+                            graphTraversal.by(__.constant(new ArrayList<>()));
                         }
                     }
                 }

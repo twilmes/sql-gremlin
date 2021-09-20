@@ -170,7 +170,7 @@ public class SqlToGremlin {
 
             queryExecutor = new SingleQueryExecutor(schemaConfig, gremlinParseInfo, table);
         } else {
-            final JoinVisitor joinVisitor = new JoinVisitor(schemaConfig);
+            final JoinVisitor joinVisitor = new JoinVisitor(schemaConfig, gremlinSelectInfoList);
             RelWalker.executeWalk(root, joinVisitor);
 
             queryExecutor = new JoinQueryExecutor(schemaConfig, gremlinParseInfo, joinVisitor.getJoinMetadata());
