@@ -63,6 +63,37 @@ public class GremlinSchema extends AbstractSchema {
         return tableDef;
     }
 
+    // TODO: Fix this to better fit the design - this is a hack to get the required info.
+    public static TableDef getTableDef(final TableConfig tableConfig, SchemaConfig config) {
+        final TableDef tableDef = new TableDef(tableConfig.getName(), tableConfig.getName(), true);
+
+        // Set table columns.
+        setTableColumns(tableDef, tableConfig.getColumns());
+
+        // Add primary key.
+        final TableColumn pk = getPrimaryKey(tableDef);
+        tableDef.columns.put(pk.getName(), pk);
+
+        // Get relationship info for vertex.
+        final List<TableRelationship> outRelationships = config.getRelationships().
+                stream().filter(rel -> rel.getOutTable().equals(tableConfig.getName())).collect(toList());
+        final List<TableRelationship> inRelationships = config.getRelationships().
+                stream().filter(rel -> rel.getInTable().equals(tableConfig.getName())).collect(toList());
+
+        outRelationships.forEach(rel -> {
+            tableDef.hasIn = true;
+            final TableColumn fk = getForeignKey(rel);
+            tableDef.columns.put(fk.getName(), fk);
+        });
+        inRelationships.forEach(rel -> {
+            tableDef.hasOut = true;
+            final TableColumn fk = getForeignKey(rel);
+            tableDef.columns.put(fk.getName(), fk);
+        });
+
+        return tableDef;
+    }
+
     static void setTableColumns(final TableDef tableDef, final List<TableColumn> tableColumns) {
         tableColumns.forEach(column -> tableDef.columns.put(column.getName().toUpperCase(), column));
     }

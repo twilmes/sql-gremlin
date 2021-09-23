@@ -51,7 +51,6 @@ public class GremlinToEnumerableConverter
 
     @Override
     public Result implement(final EnumerableRelImplementor implementor, final Prefer pref) {
-        System.out.println("Implement");
         return null;
     }
 }

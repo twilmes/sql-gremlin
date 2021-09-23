@@ -99,6 +99,30 @@ public class SqlToGremlin {
         final QueryPlanner queryPlanner = new QueryPlanner(frameworkConfig);
         queryPlanner.plan(sql);
         final RelNode node = queryPlanner.getTransform();
+        SqlNode sqlNode = queryPlanner.getValidate();
+        // determine if we need to break the logical plan off and run part via Gremlin & part Calcite
+        RelNode root = node;
+        if(!isConvertable(node)) {
+            // go until we hit a converter to find the input
+            root = root.getInput(0);
+            while(!isConvertable(root)) {
+                root = root.getInput(0);
+            };
+        }
+
+        // Get all scan chunks.  A scan chunk is a table scan and any additional operators that we've
+        // pushed down like filters
+        final ScanVisitor scanVisitor = new ScanVisitor();
+        RelWalker.executeWalk(root, scanVisitor);
+        final Map<GremlinToEnumerableConverter, List<RelNode>> scanMap = scanVisitor.getScanMap();
+
+        return null;
+    }
+
+    public SqlGremlinQueryResult execute2(final String sql) throws SQLException {
+        final QueryPlanner queryPlanner = new QueryPlanner(frameworkConfig);
+        queryPlanner.plan(sql);
+        final RelNode node = queryPlanner.getTransform();
         final SqlNode sqlNode = queryPlanner.getValidate();
         int limit = -1;
         final List<GremlinSelectInfo> gremlinSelectInfoList = new ArrayList<>();

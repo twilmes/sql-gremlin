@@ -19,6 +19,7 @@
 
 package org.twilmes.sql.gremlin.rel;
 
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
@@ -45,6 +46,7 @@ public class GremlinTableScan extends TableScan implements GremlinRel {
         super(cluster, traitSet, table);
         this.gremlinTable = gremlinTable;
         this.fields = fields;
+        Convention convention = getConvention();
 
         assert gremlinTable != null;
         assert getConvention() == CONVENTION;

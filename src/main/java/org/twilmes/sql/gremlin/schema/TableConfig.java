@@ -19,6 +19,7 @@
 
 package org.twilmes.sql.gremlin.schema;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import java.util.List;
@@ -29,6 +30,7 @@ import java.util.List;
  */
 @Getter
 @Setter
+@AllArgsConstructor
 public class TableConfig {
     private String name;
     private List<TableColumn> columns;
