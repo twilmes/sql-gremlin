@@ -5,6 +5,7 @@ import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyGraph;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.twilmes.sql.gremlin.adapter.converter.SqlConverter;
 import org.twilmes.sql.gremlin.adapter.utilities.MockGraph;
 import org.twilmes.sql.gremlin.adapter.utilities.MockPersonGraph;
 import java.sql.SQLException;
@@ -22,10 +23,19 @@ public class GremlinSqlConverterTest {
     }
 
     void runQueriesForGraph(final MockGraph mockGraph) throws SQLException {
-        final GremlinSqlConverter converter = new GremlinSqlConverter(mockGraph.getSchema(), g);
+        final SqlConverter converter = new SqlConverter(mockGraph.getSchema(), g);
+        // converter.getStringTraversal("SELECT name FROM Person AS person");
         for (final String query : mockGraph.getBasicSelectQueries()) {
             LOGGER.info("Running query \"{}\".", query);
             System.out.println("String traversal: \"" + converter.getStringTraversal(query) + "\"");
+        }
+        for (final String query : mockGraph.getAggSelectQueries()) {
+            LOGGER.info("Running query \"{}\".", query);
+            // System.out.println("String traversal: \"" + converter.getStringTraversal(query) + "\"");
+        }
+        for (final String query : mockGraph.getJoinQueries()) {
+            LOGGER.info("Running query \"{}\".", query);
+            // System.out.println("String traversal: \"" + converter.getStringTraversal(query) + "\"");
         }
     }
 }
