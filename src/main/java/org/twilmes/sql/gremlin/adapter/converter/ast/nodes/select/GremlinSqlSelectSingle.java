@@ -77,9 +77,8 @@ public class GremlinSqlSelectSingle extends GremlinSqlSelect {
         if (columns.size() != 1) {
             throw new SQLException("Error: Single select has multi-table return.");
         }
-        executor.execute(
-                new Pagination(new SimpleDataReader(sqlMetadata.getTables().iterator().next(), columns.get(0)),
-                        graphTraversal, sqlGremlinQueryResult));
+        executor.execute(new Pagination(new SimpleDataReader(sqlMetadata.getTables().iterator().next(), columns.get(0)),
+                graphTraversal, sqlGremlinQueryResult));
         executor.shutdown();
     }
 
@@ -103,10 +102,12 @@ public class GremlinSqlSelectSingle extends GremlinSqlSelect {
             gremlinSqlIdentifiers.add((GremlinSqlIdentifier) gremlinSqlOperand);
         }
 
-        final GraphTraversal<?, ?> graphTraversal =
-                SqlTraversalEngine.generateInitialSql(gremlinSqlIdentifiers, sqlMetadata, g);
-        final String projectLabel = gremlinSqlIdentifiers.get(1).getName(0);
+        final GraphTraversal<?, ?> graphTraversal = SqlTraversalEngine.generateInitialSql(gremlinSqlIdentifiers, sqlMetadata, g);
         applyGroupBy(graphTraversal);
+        SqlTraversalEngine.applyAggregateFold(sqlMetadata, graphTraversal);
+        SqlTraversalEngine.addProjection(gremlinSqlIdentifiers, sqlMetadata, graphTraversal);
+
+        final String projectLabel = gremlinSqlIdentifiers.get(1).getName(0);
         applyColumnRetrieval(graphTraversal, projectLabel, GremlinSqlFactory.createNodeList(sqlSelect.getSelectList().getList()));
 
         if (sqlMetadata.getRenamedColumns() == null) {
@@ -124,15 +125,20 @@ public class GremlinSqlSelectSingle extends GremlinSqlSelect {
 
     // TODO: Fill in group by and place in correct position of traversal.
     protected void applyGroupBy(final GraphTraversal<?, ?> graphTraversal) throws SQLException {
-        if (sqlSelect.getGroup() != null) {
+        if ((sqlSelect.getGroup() != null) && (sqlSelect.getGroup().getList().size() > 0)) {
             final List<GremlinSqlIdentifier> gremlinSqlIdentifiers = new ArrayList<>();
             for (final SqlNode sqlNode : sqlSelect.getGroup().getList()) {
                 gremlinSqlIdentifiers.add(GremlinSqlFactory.createNodeCheckType(sqlNode, GremlinSqlIdentifier.class));
             }
+            graphTraversal.order();
             for (final GremlinSqlIdentifier gremlinSqlIdentifier : gremlinSqlIdentifiers) {
                 final String table = sqlMetadata.getActualTableName(gremlinSqlIdentifier.getName(0));
-                final String column = sqlMetadata.getActualColumnName(sqlMetadata.getTableDef(table), gremlinSqlIdentifier.getName(0));
-                graphTraversal.by(__.values(sqlMetadata.getActualColumnName(sqlMetadata.getTableDef(table), column)));
+                final String column = sqlMetadata.getActualColumnName(sqlMetadata.getTableDef(table), gremlinSqlIdentifier.getName(1));
+                if (column.endsWith("_ID")) {
+                    // TODO: Grouping edges that are not the edge that the vertex are connected - needs to be implemented.
+                } else {
+                    graphTraversal.by(__.values(sqlMetadata.getActualColumnName(sqlMetadata.getTableDef(table), column)));
+                }
             }
         }
     }

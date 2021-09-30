@@ -46,31 +46,47 @@ public class SqlTraversalEngine {
         if (gremlinSqlIdentifiers.size() != 2) {
             throw new SQLException("Expected gremlin sql identifiers list size to be 2.");
         }
-
-        // Should move all this into the traversal engine.
         final String label = sqlMetadata.getActualTableName(gremlinSqlIdentifiers.get(0).getName(1));
-        final String projectLabel = gremlinSqlIdentifiers.get(1).getName(0);
-
         final GraphTraversal<?, ?> graphTraversal = sqlMetadata.isVertex(label) ? g.V() : g.E();
-        graphTraversal.hasLabel(label).project(projectLabel);
-
-        sqlMetadata.addRenamedTable(label, projectLabel);
-
+        graphTraversal.hasLabel(label);
         return graphTraversal;
     }
 
-    public static GraphTraversal<?, ?> getEmptyTraversal(final StepDirection direction) {
-        switch (direction) {
-            case Out:
-                return __.outV();
-            case In:
-                return __.inV();
+    public static void applyAggregateFold(final SqlMetadata sqlMetadata, final GraphTraversal<?, ?> graphTraversal) {
+        if (sqlMetadata.getIsAggregate()) {
+            graphTraversal.fold();
         }
-        return __.__();
     }
 
-    public static GraphTraversal<?, ?> getEmptyTraversal() {
-        return getEmptyTraversal(StepDirection.None);
+    public static GraphTraversal<?, ?> getEmptyTraversal(final StepDirection direction, final SqlMetadata sqlMetadata) {
+        final GraphTraversal<?, ?> graphTraversal = __.__();
+        if (sqlMetadata.getIsAggregate()) {
+            graphTraversal.unfold();
+        }
+        switch (direction) {
+            case Out:
+                return graphTraversal.outV();
+            case In:
+                return graphTraversal.inV();
+        }
+        return graphTraversal;
+    }
+
+    public static void addProjection(final List<GremlinSqlIdentifier> gremlinSqlIdentifiers,
+                                     final SqlMetadata sqlMetadata,
+                                     final GraphTraversal<?, ?> graphTraversal) throws SQLException {
+        if (gremlinSqlIdentifiers.size() != 2) {
+            throw new SQLException("Expected gremlin sql identifiers list size to be 2.");
+        }
+        final String label = sqlMetadata.getActualTableName(gremlinSqlIdentifiers.get(0).getName(1));
+        final String projectLabel = gremlinSqlIdentifiers.get(1).getName(0);
+
+        graphTraversal.project(projectLabel);
+        sqlMetadata.addRenamedTable(label, projectLabel);
+    }
+
+    public static GraphTraversal<?, ?> getEmptyTraversal(final SqlMetadata sqlMetadata) {
+        return getEmptyTraversal(StepDirection.None, sqlMetadata);
     }
 
 
@@ -88,8 +104,7 @@ public class SqlTraversalEngine {
 
     public static GraphTraversal<?, ?> applyColumnRenames(final List<String> columnsRenamed) throws SQLException {
         final String firstColumn = columnsRenamed.remove(0);
-        final String[] remaining = columnsRenamed.toArray(new String[] {});
-
+        final String[] remaining = columnsRenamed.toArray(new String[]{});
         return __.project(firstColumn, remaining);
     }
 
@@ -119,7 +134,12 @@ public class SqlTraversalEngine {
                     final Optional<String> outVertex = edges.stream()
                             .filter(r -> r.getInTable().equalsIgnoreCase(tableDef.label))
                             .map(TableRelationship::getEdgeLabel).findFirst();
-                    if (inVertex.isPresent()) {
+                    if (inVertex.isPresent() && outVertex.isPresent()) {
+                        graphTraversal.coalesce(
+                                __.bothE().hasLabel(inVertex.get()).id().fold(),
+                                __.constant(new ArrayList<>())
+                        );
+                    } else if (inVertex.isPresent()) {
                         graphTraversal.coalesce(
                                 __.inE().hasLabel(inVertex.get()).id().fold(),
                                 __.constant(new ArrayList<>())

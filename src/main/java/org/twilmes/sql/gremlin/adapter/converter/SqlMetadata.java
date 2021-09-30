@@ -20,6 +20,12 @@
 package org.twilmes.sql.gremlin.adapter.converter;
 
 import lombok.Getter;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,11 +56,33 @@ public class SqlMetadata {
     private final Map<String, String> tableRenameMap = new HashMap<>();
     private final Map<String, String> columnRenameMap = new HashMap<>();
     private final Map<String, List<String>> columnOutputListMap = new HashMap<>();
+    private boolean isAggregate = false;
 
     public SqlMetadata(final GraphTraversalSource g, final SchemaConfig schemaConfig) {
         this.g = g;
         this.schemaConfig = schemaConfig;
         gremlinSchema = new GremlinSchema(schemaConfig);
+    }
+
+    private static boolean isAggregate(final SqlNode sqlNode) {
+        if (sqlNode instanceof SqlIdentifier) {
+            return false;
+        } else if (sqlNode instanceof SqlCall) {
+            final SqlCall sqlCall = (SqlCall) sqlNode;
+            if (isAggregate(sqlCall.getOperator())) {
+                return true;
+            }
+            for (final SqlNode tmpSqlNode : sqlCall.getOperandList()) {
+                if (isAggregate(tmpSqlNode)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isAggregate(final SqlOperator sqlOperator) {
+        return sqlOperator instanceof SqlAggFunction;
     }
 
     public boolean getIsColumnEdge(final String tableName, final String columnName) throws SQLException {
@@ -171,5 +199,13 @@ public class SqlMetadata {
             }
         }
         throw new SQLException(String.format("Error: Table %s.", table));
+    }
+
+    public void checkAggregate(final SqlNodeList sqlNodeList) {
+        isAggregate = sqlNodeList.getList().stream().anyMatch(SqlMetadata::isAggregate);
+    }
+
+    public boolean getIsAggregate() {
+        return isAggregate;
     }
 }

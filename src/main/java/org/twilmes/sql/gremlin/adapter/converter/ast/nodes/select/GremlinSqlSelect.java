@@ -58,6 +58,7 @@ public abstract class GremlinSqlSelect extends GremlinSqlNode {
     }
 
     public SqlGremlinQueryResult executeTraversal() throws SQLException {
+        sqlMetadata.checkAggregate(sqlSelect.getSelectList());
         final GraphTraversal<?, ?> graphTraversal = generateTraversal();
         applyLimit(graphTraversal);
         final SqlGremlinQueryResult sqlGremlinQueryResult = generateSqlGremlinQueryResult();
@@ -117,7 +118,7 @@ public abstract class GremlinSqlSelect extends GremlinSqlNode {
                         .applySqlIdentifier((GremlinSqlIdentifier) gremlinSqlNode, sqlMetadata, graphTraversal);
             } else if (gremlinSqlNode instanceof GremlinSqlBasicCall) {
                 final GraphTraversal<?, ?> subSubGraphTraversal =
-                        SqlTraversalEngine.getEmptyTraversal(stepDirection);
+                        SqlTraversalEngine.getEmptyTraversal(stepDirection, sqlMetadata);
                 ((GremlinSqlBasicCall) gremlinSqlNode).generateTraversal(subSubGraphTraversal);
                 SqlTraversalEngine.applyTraversal(subGraphTraversal, subSubGraphTraversal);
             } else {

@@ -31,6 +31,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.twilmes.sql.gremlin.adapter.converter.SqlMetadata;
+import org.twilmes.sql.gremlin.adapter.converter.SqlTraversalEngine;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.GremlinSqlFactory;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.GremlinSqlNode;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operands.GremlinSqlIdentifier;
@@ -186,7 +187,8 @@ public class GremlinSqlSelectMulti extends GremlinSqlSelect {
         final GraphTraversal<?, ?> graphTraversal = g.E().hasLabel(edgeLabel)
                 .where(__.inV().hasLabel(inVLabel))
                 .where(__.outV().hasLabel(outVLabel));
-        applyGroupBy(graphTraversal, inVRename, outVRename);
+        applyGroupBy(graphTraversal, edgeLabel, inVRename, outVRename);
+        SqlTraversalEngine.applyAggregateFold(sqlMetadata, graphTraversal);
         graphTraversal.project(inVRename, outVRename);
         applyColumnRetrieval(graphTraversal, inVRename, gremlinSqlNodesIn, StepDirection.In);
         applyColumnRetrieval(graphTraversal, outVRename, gremlinSqlNodesOut, StepDirection.Out);
@@ -194,7 +196,7 @@ public class GremlinSqlSelectMulti extends GremlinSqlSelect {
     }
 
     // TODO: Fill in group by and place in correct position of traversal.
-    protected void applyGroupBy(final GraphTraversal<?, ?> graphTraversal, final String inVRename, final String outVRename) throws SQLException {
+    protected void applyGroupBy(final GraphTraversal<?, ?> graphTraversal, final String edgeLabel, final String inVRename, final String outVRename) throws SQLException {
         if ((sqlSelect.getGroup() != null) && (sqlSelect.getGroup().getList().size() > 0)) {
             final List<GremlinSqlIdentifier> gremlinSqlIdentifiers = new ArrayList<>();
             for (final SqlNode sqlNode : sqlSelect.getGroup().getList()) {
@@ -203,21 +205,22 @@ public class GremlinSqlSelectMulti extends GremlinSqlSelect {
 
             graphTraversal.order();
             for (final GremlinSqlIdentifier gremlinSqlIdentifier : gremlinSqlIdentifiers) {
-                final String table = sqlMetadata.getActualTableName(gremlinSqlIdentifier.getName(0));
+                final String table = sqlMetadata.getRenamedTable(gremlinSqlIdentifier.getName(0));
                 final String column = sqlMetadata.getActualColumnName(sqlMetadata.getTableDef(table), gremlinSqlIdentifier.getName(1));
-                if (inVRename.equals(table)) {
-                    graphTraversal.by(__.inV().hasLabel(table).values(sqlMetadata.getActualColumnName(sqlMetadata.getTableDef(table), column)));
-                } else if (outVRename.equals(table)) {
-                    graphTraversal.by(__.outV().hasLabel(table).values(sqlMetadata.getActualColumnName(sqlMetadata.getTableDef(table), column)));
+                if (column.replace("_ID", "").equalsIgnoreCase(edgeLabel)) {
+                    graphTraversal.by(__.id());
+                } else if (column.endsWith("_ID")) {
+                    // TODO: Grouping edges that are not the edge that the vertex are connected - needs to be implemented.
                 } else {
-                    throw new SQLException(String.format("Error, unable to group table %s.", table));
+                    if (inVRename.equals(table)) {
+                        graphTraversal.by(__.inV().hasLabel(table).values(sqlMetadata.getActualColumnName(sqlMetadata.getTableDef(table), column)));
+                    } else if (outVRename.equals(table)) {
+                        graphTraversal.by(__.outV().hasLabel(table).values(sqlMetadata.getActualColumnName(sqlMetadata.getTableDef(table), column)));
+                    } else {
+                        throw new SQLException(String.format("Error, unable to group table %s.", table));
+                    }
                 }
             }
         }
-        /**
-         .order()
-         .by(outV().hasLabel('airport').values('country'))
-         .by(inV().hasLabel('airport').values('country'))
-         */
     }
 }
