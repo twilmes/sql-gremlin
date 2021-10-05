@@ -36,6 +36,7 @@ import org.twilmes.sql.gremlin.adapter.converter.schema.TableConfig;
 import org.twilmes.sql.gremlin.adapter.converter.schema.TableDef;
 import org.twilmes.sql.gremlin.adapter.converter.schema.TableRelationship;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -65,9 +66,7 @@ public class SqlMetadata {
     }
 
     private static boolean isAggregate(final SqlNode sqlNode) {
-        if (sqlNode instanceof SqlIdentifier) {
-            return false;
-        } else if (sqlNode instanceof SqlCall) {
+        if (sqlNode instanceof SqlCall) {
             final SqlCall sqlCall = (SqlCall) sqlNode;
             if (isAggregate(sqlCall.getOperator())) {
                 return true;
@@ -92,7 +91,7 @@ public class SqlMetadata {
     public String getColumnEdgeLabel(final String column) throws SQLException {
         final String columnName = getRenamedColumn(column);
         if (!columnName.toUpperCase().endsWith("_ID")) {
-            throw new SQLException("Error: Edge labels must end with _ID");
+            throw new SQLException("Error: Edge labels must end with _ID.");
         }
         final TableDef tableDef = getTableDef(column.substring(0, column.length() - "_ID".length()));
         if (tableDef.isVertex) {
@@ -112,11 +111,11 @@ public class SqlMetadata {
     }
 
     public Set<String> getRenamedColumns() {
-        return columnRenameMap.keySet();
+        return new HashSet<>(columnRenameMap.keySet());
     }
 
     public void setColumnOutputList(final String table, final List<String> columnOutputList) {
-        columnOutputListMap.put(table, columnOutputList);
+        columnOutputListMap.put(table, new ArrayList<>(columnOutputList));
     }
 
     public Set<TableDef> getTables() throws SQLException {
@@ -196,6 +195,11 @@ public class SqlMetadata {
         for (final TableConfig tableConfig : schemaConfig.getTables()) {
             if (tableConfig.getName().equalsIgnoreCase(renamedTableName)) {
                 return tableConfig.getName();
+            }
+        }
+        for (final TableRelationship tableRelationship : schemaConfig.getRelationships()) {
+            if (tableRelationship.getEdgeLabel().equalsIgnoreCase(renamedTableName)) {
+                return tableRelationship.getEdgeLabel();
             }
         }
         throw new SQLException(String.format("Error: Table %s.", table));

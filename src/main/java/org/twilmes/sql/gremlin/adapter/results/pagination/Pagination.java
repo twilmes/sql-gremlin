@@ -36,7 +36,7 @@ public class Pagination implements Runnable {
     private final int pageSize = DEFAULT_PAGE_SIZE;
     private final GetRowFromMap getRowFromMap;
     private final GraphTraversal<?, ?> traversal;
-    SqlGremlinQueryResult sqlGremlinQueryResult;
+    private final SqlGremlinQueryResult sqlGremlinQueryResult;
 
     @Override
     public void run() {
@@ -70,5 +70,4 @@ public class Pagination implements Runnable {
         }
         sqlGremlinQueryResult.addResults(finalRowResult);
     }
-
 }

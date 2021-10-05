@@ -87,6 +87,6 @@ public class GremlinSqlBasicCall extends GremlinSqlNode {
                 return ((GremlinSqlIdentifier) gremlinSqlNodes.get(0)).getName(1);
             }
         }
-        throw new SQLException("Unable to rename.");
+        throw new SQLException("Unable to determine column rename.");
     }
 }

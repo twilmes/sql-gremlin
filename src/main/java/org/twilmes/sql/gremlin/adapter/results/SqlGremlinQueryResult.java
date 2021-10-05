@@ -54,8 +54,8 @@ public class SqlGremlinQueryResult {
         }
     }
 
-    public SqlGremlinQueryResult(final List<String> columns, final List<TableDef> tableConfigs, final
-    SqlMetadata sqlMetadata) {
+    public SqlGremlinQueryResult(final List<String> columns, final List<TableDef> tableConfigs,
+                                 final SqlMetadata sqlMetadata) {
         this.columns = columns;
         for (final String column : columns) {
             TableColumn col = null;

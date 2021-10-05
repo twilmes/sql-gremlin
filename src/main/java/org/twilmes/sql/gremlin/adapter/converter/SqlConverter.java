@@ -120,7 +120,7 @@ public class SqlConverter {
     }
 
     @Getter
-    public static class QueryPlanner {
+    private static class QueryPlanner {
         private final Planner planner;
         private SqlNode parse;
         private SqlNode validate;

@@ -44,7 +44,7 @@ public class SqlTraversalEngine {
                                                           final SqlMetadata sqlMetadata,
                                                           final GraphTraversalSource g) throws SQLException {
         if (gremlinSqlIdentifiers.size() != 2) {
-            throw new SQLException("Expected gremlin sql identifiers list size to be 2.");
+            throw new SQLException("Expected GremlinSqlIdentifier List size to be 2.");
         }
         final String label = sqlMetadata.getActualTableName(gremlinSqlIdentifiers.get(0).getName(1));
         final GraphTraversal<?, ?> graphTraversal = sqlMetadata.isVertex(label) ? g.V() : g.E();
@@ -76,7 +76,7 @@ public class SqlTraversalEngine {
                                      final SqlMetadata sqlMetadata,
                                      final GraphTraversal<?, ?> graphTraversal) throws SQLException {
         if (gremlinSqlIdentifiers.size() != 2) {
-            throw new SQLException("Expected gremlin sql identifiers list size to be 2.");
+            throw new SQLException("Expected GremlinSqlIdentifier List size to be 2.");
         }
         final String label = sqlMetadata.getActualTableName(gremlinSqlIdentifiers.get(0).getName(1));
         final String projectLabel = gremlinSqlIdentifiers.get(1).getName(0);
