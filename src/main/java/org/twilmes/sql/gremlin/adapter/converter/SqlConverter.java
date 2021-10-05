@@ -141,7 +141,7 @@ public class SqlConverter {
                         .replace(EnumerableConvention.INSTANCE);
                 transform = planner.transform(0, traitSet, convert.project());
             } catch (final Exception e) {
-                throw new SQLException("Error parsing: " + sql + " - " + e, e);
+                throw new SQLException(String.format("Error parsing: \"%s\". Error: \"%s\".", sql, e), e);
             }
         }
     }

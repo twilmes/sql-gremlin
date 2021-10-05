@@ -104,8 +104,8 @@ public abstract class GremlinSqlSelect extends GremlinSqlNode {
             } else if (gremlinSqlNode instanceof GremlinSqlBasicCall) {
                 columnsRenamed.add(((GremlinSqlBasicCall) gremlinSqlNode).getRename());
             } else {
-                throw new SQLException(
-                        "Error: Unknown sql node type for select list " + gremlinSqlNode.getClass().getName());
+                throw new SQLException(String.format(
+                        "Error: Unknown sql node type for select list %s.", gremlinSqlNode.getClass().getName()));
             }
         }
 
@@ -122,8 +122,8 @@ public abstract class GremlinSqlSelect extends GremlinSqlNode {
                 ((GremlinSqlBasicCall) gremlinSqlNode).generateTraversal(subSubGraphTraversal);
                 SqlTraversalEngine.applyTraversal(subGraphTraversal, subSubGraphTraversal);
             } else {
-                throw new SQLException(
-                        "Error: Unknown sql node type for select list " + gremlinSqlNode.getClass().getName());
+                throw new SQLException(String.format(
+                        "Error: Unknown sql node type for select list %s.", gremlinSqlNode.getClass().getName()));
             }
         }
         SqlTraversalEngine.applyTraversal(graphTraversal, subGraphTraversal);

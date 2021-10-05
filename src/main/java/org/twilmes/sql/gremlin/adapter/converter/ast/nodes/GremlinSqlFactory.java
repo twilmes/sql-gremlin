@@ -73,7 +73,7 @@ public class GremlinSqlFactory {
                         getGremlinSqlMetadata());
             }
         }
-        throw new SQLException("Error: Unknown node: " + sqlNode.getClass().getName());
+        throw new SQLException(String.format("Error: Unknown node: %s.", sqlNode.getClass().getName()));
     }
 
     public static GremlinSqlOperator createOperator(final SqlOperator sqlOperator, final List<SqlNode> sqlOperands)
@@ -85,7 +85,7 @@ public class GremlinSqlFactory {
             return new GremlinSqlAggFunction((SqlAggFunction) sqlOperator, createNodeList(sqlOperands),
                     getGremlinSqlMetadata());
         }
-        throw new SQLException("Error: Unknown operator: " + sqlOperator.getKind().sql);
+        throw new SQLException(String.format("Error: Unknown operator: %s.", sqlOperator.getKind().sql));
     }
 
     public static GremlinSqlNode createNode(final SqlNode sqlNode) throws SQLException {
@@ -94,7 +94,7 @@ public class GremlinSqlFactory {
         } else if (sqlNode instanceof SqlIdentifier) {
             return new GremlinSqlIdentifier((SqlIdentifier) sqlNode, getGremlinSqlMetadata());
         }
-        throw new SQLException("Error: Unknown node: " + sqlNode.getClass().getName());
+        throw new SQLException(String.format("Error: Unknown node: %s.", sqlNode.getClass().getName()));
     }
 
     public static List<GremlinSqlNode> createNodeList(final List<SqlNode> sqlNodes) throws SQLException {
@@ -121,7 +121,7 @@ public class GremlinSqlFactory {
         } else if (selectRoot.getFrom() instanceof SqlBasicCall) {
             return new GremlinSqlSelectSingle(selectRoot, (SqlBasicCall) selectRoot.getFrom(), sqlMetadata, g);
         }
-        throw new SQLException("Error: Unknown node: for getFrom() " + selectRoot.getFrom().getClass().getName());
+        throw new SQLException(String.format("Error: Unknown node for getFrom: %s.", selectRoot.getFrom().getClass().getName()));
     }
 
     public static boolean isTable(final SqlNode sqlNode, final String renamedTable) throws SQLException {
