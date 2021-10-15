@@ -43,7 +43,6 @@ public class GremlinSqlAggFunction extends GremlinSqlOperator {
                 put(SqlKind.AVG, GremlinSqlAggFunctionImplementations.AVG);
                 put(SqlKind.COUNT, GremlinSqlAggFunctionImplementations.COUNT);
                 put(SqlKind.SUM, GremlinSqlAggFunctionImplementations.SUM);
-                put(SqlKind.SUM0, GremlinSqlAggFunctionImplementations.SUM0);
                 put(SqlKind.MIN, GremlinSqlAggFunctionImplementations.MIN);
                 put(SqlKind.MAX, GremlinSqlAggFunctionImplementations.MAX);
 
@@ -111,20 +110,19 @@ public class GremlinSqlAggFunction extends GremlinSqlOperator {
                 };
         public static GremlinSqlTraversalAppender COUNT =
                 (GraphTraversal<?, ?> graphTraversal, List<GremlinSqlNode> operands) -> {
+                    graphTraversal.count();
                 };
         public static GremlinSqlTraversalAppender SUM =
                 (GraphTraversal<?, ?> graphTraversal, List<GremlinSqlNode> operands) -> {
+                    graphTraversal.sum();
                 };
         public static GremlinSqlTraversalAppender MIN =
                 (GraphTraversal<?, ?> graphTraversal, List<GremlinSqlNode> operands) -> {
+                    graphTraversal.min();
                 };
         public static GremlinSqlTraversalAppender MAX =
                 (GraphTraversal<?, ?> graphTraversal, List<GremlinSqlNode> operands) -> {
-                };
-
-        // TODO: What is SUM0 vs SUM?
-        public static GremlinSqlTraversalAppender SUM0 =
-                (GraphTraversal<?, ?> graphTraversal, List<GremlinSqlNode> operands) -> {
+                    graphTraversal.max();
                 };
     }
 }

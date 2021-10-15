@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.twilmes.sql.gremlin.adapter.rel;
+package org.twilmes.sql.gremlin.adapter.converter.schema.calcite;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
@@ -36,7 +36,6 @@ import org.apache.calcite.rel.logical.LogicalFilter;
  * Modified by lyndonb-bq on 05/17/21.
  */
 public class GremlinRules {
-
     public static final RelOptRule[] RULES = {
             GremlinFilterRule.INSTANCE
     };
@@ -58,18 +57,13 @@ public class GremlinRules {
         private static final GremlinFilterRule INSTANCE = new GremlinFilterRule();
 
         private GremlinFilterRule() {
-            super(LogicalFilter.class, Convention.NONE, GremlinRel.CONVENTION,
-                    "GremlinFilterRule");
+            super(LogicalFilter.class, Convention.NONE, GremlinRel.CONVENTION, "GremlinFilterRule");
         }
 
         public RelNode convert(final RelNode rel) {
             final LogicalFilter filter = (LogicalFilter) rel;
             final RelTraitSet traitSet = filter.getTraitSet().replace(out);
-            return new GremlinFilter(
-                    rel.getCluster(),
-                    traitSet,
-                    convert(filter.getInput(), out),
-                    filter.getCondition());
+            return new GremlinFilter(rel.getCluster(), traitSet, convert(filter.getInput(), out), filter.getCondition());
         }
     }
 

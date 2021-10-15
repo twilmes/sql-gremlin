@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.twilmes.sql.gremlin.adapter.rel;
+package org.twilmes.sql.gremlin.adapter.converter.schema.calcite;
 
 /**
  * Created by twilmes on 9/25/15.
@@ -38,8 +38,7 @@ public class GremlinToEnumerableConverterRule extends ConverterRule {
             new GremlinToEnumerableConverterRule();
 
     private GremlinToEnumerableConverterRule() {
-        super(RelNode.class, GremlinRel.CONVENTION, EnumerableConvention.INSTANCE,
-                "GremlinToEnumerableConverterRule");
+        super(RelNode.class, GremlinRel.CONVENTION, EnumerableConvention.INSTANCE,"GremlinToEnumerableConverterRule");
     }
 
     @Override

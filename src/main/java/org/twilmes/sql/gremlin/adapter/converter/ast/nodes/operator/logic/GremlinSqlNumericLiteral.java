@@ -17,24 +17,19 @@
  * under the License.
  */
 
-package org.twilmes.sql.gremlin.adapter.converter.schema;
+package org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.logic;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
-import java.util.List;
+import org.apache.calcite.sql.SqlNumericLiteral;
+import org.twilmes.sql.gremlin.adapter.converter.SqlMetadata;
+import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.GremlinSqlNode;
 
-/**
- * Created by twilmes on 10/10/15.
- * Modified by lyndonb-bq on 05/17/21.
- */
-@Getter
-@Setter
-@AllArgsConstructor
-public class SchemaConfig {
-    private List<TableConfig> tables;
-    private List<TableRelationship> relationships;
+public class GremlinSqlNumericLiteral extends GremlinSqlNode {
+    SqlNumericLiteral sqlNumericLiteral;
 
-    public SchemaConfig() {
+    public GremlinSqlNumericLiteral(final SqlNumericLiteral sqlNumericLiteral,
+                                    final SqlMetadata sqlMetadata) {
+        super(sqlNumericLiteral, sqlMetadata);
+        this.sqlNumericLiteral = sqlNumericLiteral;
     }
+
 }

@@ -19,19 +19,19 @@
 
 package org.twilmes.sql.gremlin.adapter.converter;
 
+import org.apache.tinkerpop.gremlin.groovy.jsr223.GroovyTranslator;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operands.GremlinSqlIdentifier;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.select.StepDirection;
-import org.twilmes.sql.gremlin.adapter.converter.schema.SchemaConfig;
-import org.twilmes.sql.gremlin.adapter.converter.schema.TableDef;
-import org.twilmes.sql.gremlin.adapter.converter.schema.TableRelationship;
+import org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinTableBase;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+
+import static org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinTableBase.IN_ID;
+import static org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinTableBase.OUT_ID;
 
 /**
  * Traversal engine for SQL-Gremlin. This module is responsible for generating the gremlin traversals.
@@ -59,7 +59,7 @@ public class SqlTraversalEngine {
     }
 
     public static GraphTraversal<?, ?> getEmptyTraversal(final StepDirection direction, final SqlMetadata sqlMetadata) {
-        final GraphTraversal<?, ?> graphTraversal = __.__();
+        final GraphTraversal<?, ?> graphTraversal = __.unfold();
         if (sqlMetadata.getIsAggregate()) {
             graphTraversal.unfold();
         }
@@ -92,6 +92,8 @@ public class SqlTraversalEngine {
 
     public static void applyTraversal(final GraphTraversal<?, ?> graphTraversal,
                                       final GraphTraversal<?, ?> subGraphTraversal) {
+        System.out.println("graphTraversal: " + GroovyTranslator.of("g").translate(graphTraversal.asAdmin().getBytecode()));
+        System.out.println("subGraphTraversal: " + GroovyTranslator.of("g").translate(subGraphTraversal.asAdmin().getBytecode()));
         graphTraversal.by(subGraphTraversal);
     }
 
@@ -111,47 +113,34 @@ public class SqlTraversalEngine {
     private static void appendGraphTraversal(final String table, final String column,
                                              final SqlMetadata sqlMetadata,
                                              final GraphTraversal<?, ?> graphTraversal) throws SQLException {
-        final TableDef tableDef = sqlMetadata.getTableDef(table);
-        final SchemaConfig schemaConfig = sqlMetadata.getSchemaConfig();
-        final String columnName = sqlMetadata.getActualColumnName(tableDef, column);
+        final GremlinTableBase gremlinTableBase = sqlMetadata.getGremlinTable(table);
+        final String columnName = sqlMetadata.getActualColumnName(gremlinTableBase, column);
 
         // Primary/foreign key, need to traverse appropriately.
-        if (!columnName.toLowerCase().endsWith("_id")) {
+        if (!columnName.endsWith(GremlinTableBase.ID)) {
             graphTraversal.choose(__.has(columnName), __.values(columnName), __.constant(""));
         } else {
-            // It's this vertex
-            if (columnName.toLowerCase().startsWith(tableDef.label)) {
+            // It's this vertex/edge.
+            if (columnName.toLowerCase().startsWith(gremlinTableBase.getLabel())) {
                 graphTraversal.id();
             } else {
-                if (tableDef.isVertex) {
-                    final List<TableRelationship> edges = schemaConfig.getRelationships().stream()
-                            .filter(r -> columnName.toLowerCase().startsWith(r.getEdgeLabel().toLowerCase()))
-                            .collect(Collectors.toList());
-
-                    final Optional<String> inVertex = edges.stream()
-                            .filter(r -> r.getOutTable().equalsIgnoreCase(tableDef.label))
-                            .map(TableRelationship::getEdgeLabel).findFirst();
-                    final Optional<String> outVertex = edges.stream()
-                            .filter(r -> r.getInTable().equalsIgnoreCase(tableDef.label))
-                            .map(TableRelationship::getEdgeLabel).findFirst();
-                    if (inVertex.isPresent() && outVertex.isPresent()) {
-                        graphTraversal.coalesce(
-                                __.bothE().hasLabel(inVertex.get()).id().fold(),
-                                __.constant(new ArrayList<>())
-                        );
-                    } else if (inVertex.isPresent()) {
-                        graphTraversal.coalesce(
-                                __.inE().hasLabel(inVertex.get()).id().fold(),
-                                __.constant(new ArrayList<>())
-                        );
-                    } else if (outVertex.isPresent()) {
-                        graphTraversal.coalesce(
-                                __.outE().hasLabel(outVertex.get()).fold(),
-                                __.constant(new ArrayList<>())
-                        );
+                final GraphTraversal<?, ?> edgeGrab;
+                if (columnName.endsWith(IN_ID)) {
+                    // Vertices can have many connected, edges (thus we need to fold). Edges can only connect to 1 vertex.
+                    if (gremlinTableBase.getIsVertex()) {
+                        graphTraversal.coalesce( __.inE().hasLabel(columnName.replace(IN_ID, "")).id().fold(), __.constant(new ArrayList<>()));
                     } else {
-                        graphTraversal.constant(new ArrayList<>());
+                        graphTraversal.coalesce( __.inV().hasLabel(columnName.replace(IN_ID, "")).id(), __.constant(new ArrayList<>()));
                     }
+                } else if (column.endsWith(OUT_ID)) {
+                    // Vertices can have many connected, edges (thus we need to fold). Edges can only connect to 1 vertex.
+                    if (gremlinTableBase.getIsVertex()) {
+                        graphTraversal.coalesce( __.outE().hasLabel(columnName.replace(OUT_ID, "")).id().fold(), __.constant(new ArrayList<>()));
+                    } else {
+                        graphTraversal.coalesce( __.outV().hasLabel(columnName.replace(IN_ID, "")).id(), __.constant(new ArrayList<>()));
+                    }
+                } else {
+                    graphTraversal.constant(new ArrayList<>());
                 }
             }
         }

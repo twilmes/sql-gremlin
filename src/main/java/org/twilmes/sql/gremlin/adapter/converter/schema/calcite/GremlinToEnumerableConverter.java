@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.twilmes.sql.gremlin.adapter.rel;
+package org.twilmes.sql.gremlin.adapter.converter.schema.calcite;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;

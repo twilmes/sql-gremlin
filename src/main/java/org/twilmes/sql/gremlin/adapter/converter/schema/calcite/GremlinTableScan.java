@@ -17,9 +17,8 @@
  * under the License.
  */
 
-package org.twilmes.sql.gremlin.adapter.rel;
+package org.twilmes.sql.gremlin.adapter.converter.schema.calcite;
 
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
@@ -37,22 +36,12 @@ import java.util.List;
  * Modified by lyndonb-bq on 05/17/21.
  */
 public class GremlinTableScan extends TableScan implements GremlinRel {
-    private final GremlinTable gremlinTable;
     private final int[] fields;
 
-    protected GremlinTableScan(final RelOptCluster cluster, final RelTraitSet traitSet,
-                               final RelOptTable table, final GremlinTable gremlinTable, final int[] fields) {
+    public GremlinTableScan(final RelOptCluster cluster, final RelTraitSet traitSet,
+                            final RelOptTable table, final int[] fields) {
         super(cluster, traitSet, table);
-        this.gremlinTable = gremlinTable;
         this.fields = fields;
-        Convention convention = getConvention();
-
-        assert gremlinTable != null;
-        assert getConvention() == CONVENTION;
-    }
-
-    public GremlinTable getGremlinTable() {
-        return gremlinTable;
     }
 
     @Override
@@ -78,11 +67,5 @@ public class GremlinTableScan extends TableScan implements GremlinRel {
         for (final RelOptRule rule : GremlinRules.RULES) {
             planner.addRule(rule);
         }
-    }
-
-    @Override
-    public void implement(final Implementor implementor) {
-        implementor.gremlinTable = gremlinTable;
-        implementor.table = table;
     }
 }

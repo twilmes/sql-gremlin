@@ -24,6 +24,9 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.twilmes.sql.gremlin.adapter.results.SqlGremlinQueryResult;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -41,16 +44,21 @@ public class Pagination implements Runnable {
     @Override
     public void run() {
         try {
+            System.out.println("hasNext()");
             while (traversal.hasNext()) {
                 final List<Object> rows = new ArrayList<>();
                 traversal.next(pageSize).forEach(map -> rows.add(getRowFromMap.execute((Map<String, Object>) map)));
                 convertAndInsertResult(sqlGremlinQueryResult, rows);
             }
             // If we run out of traversal data (or hit our limit), stop and signal to the result that it is done.
+            System.out.println("done");
             sqlGremlinQueryResult.assertIsEmpty();
         } catch (final Exception e) {
+            final StringWriter sw = new StringWriter();
+            final PrintWriter pw = new PrintWriter(sw);
+            e.printStackTrace(pw);
             LOGGER.error("Encountered exception", e);
-            sqlGremlinQueryResult.assertIsEmpty();
+            sqlGremlinQueryResult.setPaginationException(new SQLException(e + pw.toString()));
         }
     }
 

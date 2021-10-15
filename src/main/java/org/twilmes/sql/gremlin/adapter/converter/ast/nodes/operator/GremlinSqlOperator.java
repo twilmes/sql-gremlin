@@ -61,9 +61,7 @@ public abstract class GremlinSqlOperator {
 
         if (sqlOperands.size() == 1) {
             if (sqlOperands.get(0) instanceof GremlinSqlIdentifier) {
-                SqlTraversalEngine
-                        .applySqlIdentifier((GremlinSqlIdentifier) sqlOperands.get(0), sqlMetadata,
-                                graphTraversal);
+                SqlTraversalEngine.applySqlIdentifier((GremlinSqlIdentifier) sqlOperands.get(0), sqlMetadata, graphTraversal);
             }
         }
 

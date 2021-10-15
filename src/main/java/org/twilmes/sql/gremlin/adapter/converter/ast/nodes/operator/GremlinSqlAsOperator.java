@@ -52,8 +52,7 @@ public class GremlinSqlAsOperator extends GremlinSqlOperator {
     @Override
     protected void appendTraversal(final GraphTraversal<?, ?> graphTraversal) throws SQLException {
         if (sqlOperands.size() == 2 && sqlOperands.get(0) instanceof GremlinSqlIdentifier) {
-            SqlTraversalEngine
-                    .applySqlIdentifier((GremlinSqlIdentifier) sqlOperands.get(0), sqlMetadata, graphTraversal);
+            SqlTraversalEngine.applySqlIdentifier((GremlinSqlIdentifier) sqlOperands.get(0), sqlMetadata, graphTraversal);
         }
     }
 

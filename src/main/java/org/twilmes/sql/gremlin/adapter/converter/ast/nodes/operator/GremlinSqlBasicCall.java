@@ -48,8 +48,7 @@ public class GremlinSqlBasicCall extends GremlinSqlNode {
             throws SQLException {
         super(sqlBasicCall, sqlMetadata);
         this.sqlBasicCall = sqlBasicCall;
-        gremlinSqlOperator =
-                GremlinSqlFactory.createOperator(sqlBasicCall.getOperator(), sqlBasicCall.getOperandList());
+        gremlinSqlOperator = GremlinSqlFactory.createOperator(sqlBasicCall.getOperator(), sqlBasicCall.getOperandList());
         gremlinSqlNodes = GremlinSqlFactory.createNodeList(sqlBasicCall.getOperandList());
     }
 
@@ -73,7 +72,6 @@ public class GremlinSqlBasicCall extends GremlinSqlNode {
     public void generateTraversal(final GraphTraversal<?, ?> graphTraversal) throws SQLException {
         validate();
         gremlinSqlOperator.appendOperatorTraversal(graphTraversal);
-
     }
 
     public String getRename() throws SQLException {

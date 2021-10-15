@@ -44,4 +44,12 @@ public class GremlinSqlIdentifier extends GremlinSqlNode {
         }
         return sqlIdentifier.names.get(idx);
     }
+
+
+    public String getColumn() throws SQLException {
+        if (sqlIdentifier.names.size() < 1) {
+            throw new SQLException("Expected at least one name in list for identifier");
+        }
+        return sqlIdentifier.names.get(sqlIdentifier.names.size() - 1);
+    }
 }

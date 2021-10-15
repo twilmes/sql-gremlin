@@ -29,6 +29,7 @@ import org.twilmes.sql.gremlin.adapter.converter.SqlMetadata;
  * This abstract class in the GremlinSql equivalent of SqlNode.
  *
  * @author Lyndon Bauto (lyndonb@bitquilltech.com)
+ * @author Adapted from implementation by twilmes (https://github.com/twilmes/sql-gremlin)
  */
 @AllArgsConstructor
 public abstract class GremlinSqlNode {

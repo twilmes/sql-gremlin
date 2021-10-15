@@ -17,19 +17,19 @@
  * under the License.
  */
 
-package org.twilmes.sql.gremlin.adapter.converter.schema;
+package org.twilmes.sql.gremlin.adapter.converter.schema.gremlin;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.apache.tinkerpop.gremlin.structure.Direction;
+import lombok.Setter;
 
 /**
- * Created by twilmes on 12/8/15.
+ * Created by twilmes on 10/10/15.
  * Modified by lyndonb-bq on 05/17/21.
  */
-@AllArgsConstructor
 @Getter
-public class LabelInfo {
-    private final String label;
-    private final Direction direction;
+@AllArgsConstructor
+public class GremlinProperty {
+    private final String name;
+    private final String type;
 }

@@ -19,17 +19,17 @@
 
 package org.twilmes.sql.gremlin.adapter.results.pagination;
 
-import org.twilmes.sql.gremlin.adapter.converter.schema.TableDef;
+import org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinTableBase;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 public class SimpleDataReader implements GetRowFromMap {
-    final String tableName;
+    final String label;
     final List<String> columnNames;
 
-    public SimpleDataReader(final TableDef tableDef, final List<String> columnNames) {
-        this.tableName = tableDef.label;
+    public SimpleDataReader(final GremlinTableBase tableDef, final List<String> columnNames) {
+        this.label = tableDef.getLabel();
         this.columnNames = columnNames;
     }
 
@@ -39,7 +39,7 @@ public class SimpleDataReader implements GetRowFromMap {
         int i = 0;
         for (final String column : columnNames) {
             final Optional<String> tableKey =
-                    map.keySet().stream().filter(key -> key.equalsIgnoreCase(tableName)).findFirst();
+                    map.keySet().stream().filter(key -> key.equalsIgnoreCase(label)).findFirst();
             if (!tableKey.isPresent()) {
                 row[i++] = null;
                 continue;

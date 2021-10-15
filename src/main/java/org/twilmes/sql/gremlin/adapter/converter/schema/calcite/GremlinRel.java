@@ -17,10 +17,9 @@
  * under the License.
  */
 
-package org.twilmes.sql.gremlin.adapter.rel;
+package org.twilmes.sql.gremlin.adapter.converter.schema.calcite;
 
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 
 /**
@@ -32,15 +31,4 @@ public interface GremlinRel extends RelNode {
      * Calling convention for relational operations that occur in Gremlin.
      */
     Convention CONVENTION = new Convention.Impl("GREMLIN", GremlinRel.class);
-
-    void implement(Implementor implementor);
-
-    /**
-     * Callback for the implementation process that converts a tree of
-     * {@link GremlinRel} nodes into a Gremlin query.
-     */
-    class Implementor {
-        RelOptTable table;
-        GremlinTable gremlinTable;
-    }
 }

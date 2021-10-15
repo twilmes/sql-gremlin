@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.twilmes.sql.gremlin.adapter.rel;
+package org.twilmes.sql.gremlin.adapter.converter.schema.calcite;
 
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -26,8 +26,8 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rex.RexNode;
 
 /**
- * Created by twilmes on 11/14/15.
- * Modified by lyndonb-bq on 05/17/21.
+ * @author Lyndon Bauto (lyndonb@bitquilltech.com)
+ * @author Adapted from implementation by twilmes (https://github.com/twilmes/sql-gremlin)
  */
 public class GremlinFilter extends Filter implements GremlinRel {
     public GremlinFilter(
@@ -41,9 +41,5 @@ public class GremlinFilter extends Filter implements GremlinRel {
     @Override
     public Filter copy(final RelTraitSet traitSet, final RelNode input, final RexNode condition) {
         return new GremlinFilter(getCluster(), traitSet, input, condition);
-    }
-
-    @Override
-    public void implement(final Implementor implementor) {
     }
 }
