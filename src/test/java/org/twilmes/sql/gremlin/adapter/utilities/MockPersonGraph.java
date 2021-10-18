@@ -1,7 +1,7 @@
 package org.twilmes.sql.gremlin.adapter.utilities;
 
 import com.google.common.collect.ImmutableList;
-import javafx.util.Pair;
+import org.apache.calcite.util.Pair;
 import org.twilmes.sql.gremlin.adapter.converter.schema.calcite.GremlinSchema;
 import org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinEdgeTable;
 import org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinProperty;

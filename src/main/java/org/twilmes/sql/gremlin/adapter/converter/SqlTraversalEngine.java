@@ -92,8 +92,6 @@ public class SqlTraversalEngine {
 
     public static void applyTraversal(final GraphTraversal<?, ?> graphTraversal,
                                       final GraphTraversal<?, ?> subGraphTraversal) {
-        System.out.println("graphTraversal: " + GroovyTranslator.of("g").translate(graphTraversal.asAdmin().getBytecode()));
-        System.out.println("subGraphTraversal: " + GroovyTranslator.of("g").translate(subGraphTraversal.asAdmin().getBytecode()));
         graphTraversal.by(subGraphTraversal);
     }
 

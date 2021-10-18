@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GroovyTranslator;
+import org.apache.tinkerpop.gremlin.process.traversal.Step;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
@@ -88,7 +89,6 @@ public class GremlinSqlSelectSingle extends GremlinSqlSelect {
 
     @Override
     public GraphTraversal<?, ?> generateTraversal() throws SQLException {
-        System.out.println("Starting traversal");
         if (sqlSelect.getSelectList() == null) {
             throw new SQLException("Error: GremlinSqlSelect expects select list component.");
         }
@@ -126,7 +126,6 @@ public class GremlinSqlSelectSingle extends GremlinSqlSelect {
         if (sqlMetadata.getTables().size() != 1) {
             throw new SQLException("Error: Expected one table for traversal execution.");
         }
-        System.out.println("traversal ready");
         return graphTraversal;
     }
 
@@ -199,27 +198,6 @@ public class GremlinSqlSelectSingle extends GremlinSqlSelect {
         }
         final GremlinSqlBasicCall gremlinSqlBasicCall = GremlinSqlFactory.createNodeCheckType(sqlSelect.getHaving(),
                 GremlinSqlBasicCall.class);
-        //graphTraversal.where(unfold().values('operand 1')<.aggregate()>.<op>(<operand 2>)
-
-
-        /*
-        if (sqlSelect.getOrderList() == null || sqlSelect.getOrderList().getList().isEmpty()) {
-            return;
-        }
-        final List<GremlinSqlIdentifier> gremlinSqlIdentifiers = new ArrayList<>();
-        for (final SqlNode sqlNode : sqlSelect.getOrderList().getList()) {
-            gremlinSqlIdentifiers.add(GremlinSqlFactory.createNodeCheckType(sqlNode, GremlinSqlIdentifier.class));
-        }
-        graphTraversal.order();
-        for (final GremlinSqlIdentifier gremlinSqlIdentifier : gremlinSqlIdentifiers) {
-            final String table = sqlMetadata.getActualTableName(gremlinSqlIdentifier.getName(0));
-            final String column = sqlMetadata.getActualColumnName(sqlMetadata.getGremlinTable(table), gremlinSqlIdentifier.getName(1));
-            if (column.endsWith(GremlinTableBase.IN_ID) || column.endsWith(GremlinTableBase.OUT_ID)) {
-                // TODO: Grouping edges that are not the edge that the vertex are connected - needs to be implemented.
-            } else {
-                graphTraversal.by(__.values(sqlMetadata.getActualColumnName(sqlMetadata.getGremlinTable(table), column)));
-            }
-        }
-         */
+        gremlinSqlBasicCall.generateTraversal(graphTraversal);
     }
 }

@@ -30,7 +30,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.fun.SqlBetweenOperator;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.twilmes.sql.gremlin.adapter.converter.SqlMetadata;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operands.GremlinSqlIdentifier;
@@ -38,7 +37,6 @@ import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.GremlinSqlAs
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.GremlinSqlBasicCall;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.GremlinSqlOperator;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.aggregate.GremlinSqlAggFunction;
-import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.logic.GremlinSqlBetweenOperator;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.logic.GremlinSqlBinaryOperator;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.logic.GremlinSqlNumericLiteral;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.select.GremlinSqlSelect;
@@ -92,9 +90,6 @@ public class GremlinSqlFactory {
                     getGremlinSqlMetadata());
         } else if (sqlOperator instanceof SqlBinaryOperator) {
             return new GremlinSqlBinaryOperator((SqlBinaryOperator) sqlOperator, createNodeList(sqlOperands),
-                    getGremlinSqlMetadata());
-        } else if (sqlOperator instanceof SqlBetweenOperator) {
-            return new GremlinSqlBetweenOperator((SqlBetweenOperator) sqlOperator, createNodeList(sqlOperands),
                     getGremlinSqlMetadata());
         }
         throw new SQLException(String.format("Error: Unknown operator: %s.", sqlOperator.getKind().sql));

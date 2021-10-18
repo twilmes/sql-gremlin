@@ -64,11 +64,6 @@ public class GremlinSqlBasicCall extends GremlinSqlNode {
         }
     }
 
-    private boolean shouldExecuteBasicCall() {
-        return ((gremlinSqlOperator instanceof GremlinSqlAsOperator) &&
-                (gremlinSqlNodes.size() == 2) && (gremlinSqlNodes.get(1) instanceof GremlinSqlBasicCall));
-    }
-
     public void generateTraversal(final GraphTraversal<?, ?> graphTraversal) throws SQLException {
         validate();
         gremlinSqlOperator.appendOperatorTraversal(graphTraversal);

@@ -23,9 +23,13 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.twilmes.sql.gremlin.adapter.converter.SqlMetadata;
+import org.twilmes.sql.gremlin.adapter.converter.SqlTraversalEngine;
+import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operands.GremlinSqlIdentifier;
+import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.GremlinSqlBasicCall;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.GremlinSqlOperator;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.GremlinSqlTraversalAppender;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.GremlinSqlNode;
+import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.logic.GremlinSqlNumericLiteral;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
@@ -94,9 +98,22 @@ public class GremlinSqlAggFunction extends GremlinSqlOperator {
     }
 
     @Override
-    protected void appendTraversal(final GraphTraversal<?, ?> graphTraveral) throws SQLException {
+    protected void appendTraversal(final GraphTraversal<?, ?> graphTraversal) throws SQLException {
+        if (sqlOperands.get(0) instanceof GremlinSqlBasicCall) {
+            ((GremlinSqlBasicCall) sqlOperands.get(0)).generateTraversal(graphTraversal);
+        } else if (!(sqlOperands.get(0) instanceof GremlinSqlIdentifier) && !(sqlOperands.get(0) instanceof GremlinSqlNumericLiteral)) {
+            throw new SQLException(
+                    "Error: expected operand to be GremlinSqlBasicCall or GremlinSqlIdentifier in GremlinSqlOperator.");
+        }
+
+        if (sqlOperands.size() == 1) {
+            if (sqlOperands.get(0) instanceof GremlinSqlIdentifier) {
+                SqlTraversalEngine
+                        .applySqlIdentifier((GremlinSqlIdentifier) sqlOperands.get(0), sqlMetadata, graphTraversal);
+            }
+        }
         if (AGGREGATE_APPENDERS.containsKey(sqlAggFunction.kind)) {
-            AGGREGATE_APPENDERS.get(sqlAggFunction.kind).appendTraversal(graphTraveral, sqlOperands);
+            AGGREGATE_APPENDERS.get(sqlAggFunction.kind).appendTraversal(graphTraversal, sqlOperands);
         } else {
             throw new SQLException(
                     String.format("Error: Aggregate function %s is not supported.", sqlAggFunction.kind.sql));

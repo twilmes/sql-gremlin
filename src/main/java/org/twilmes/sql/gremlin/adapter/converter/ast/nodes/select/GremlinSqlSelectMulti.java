@@ -202,7 +202,6 @@ public class GremlinSqlSelectMulti extends GremlinSqlSelect {
         final GraphTraversal<?, ?> graphTraversal = g.E().hasLabel(edgeLabel)
                 .where(__.inV().hasLabel(inVLabel))
                 .where(__.outV().hasLabel(outVLabel));
-        System.out.println("Pre graphTraversal: " + GroovyTranslator.of("g").translate(graphTraversal.asAdmin().getBytecode()));
         applyGroupBy(graphTraversal, edgeLabel, inVRename, outVRename);
         applySelectValues(graphTraversal);
         applyOrderBy(graphTraversal, edgeLabel, inVRename, outVRename);
@@ -228,12 +227,9 @@ public class GremlinSqlSelectMulti extends GremlinSqlSelect {
             for (final SqlNode sqlNode : sqlSelect.getGroup().getList()) {
                 gremlinSqlIdentifiers.add(GremlinSqlFactory.createNodeCheckType(sqlNode, GremlinSqlIdentifier.class));
             }
-            System.out.println("Before group graphTraversal: " + GroovyTranslator.of("g").translate(graphTraversal.asAdmin().getBytecode()));
             graphTraversal.group();
-            System.out.println("After group graphTraversal: " + GroovyTranslator.of("g").translate(graphTraversal.asAdmin().getBytecode()));
             final List<GraphTraversal> byUnion = new ArrayList<>();
             for (final GremlinSqlIdentifier gremlinSqlIdentifier : gremlinSqlIdentifiers) {
-                System.out.println("In loop graphTraversal: " + GroovyTranslator.of("g").translate(graphTraversal.asAdmin().getBytecode()));
                 final String table = sqlMetadata.getRenamedTable(gremlinSqlIdentifier.getName(0));
                 final String column = sqlMetadata.getActualColumnName(sqlMetadata.getGremlinTable(table), gremlinSqlIdentifier.getName(1));
                 if (column.replace(GremlinTableBase.ID, "").equalsIgnoreCase(edgeLabel)) {
@@ -250,8 +246,6 @@ public class GremlinSqlSelectMulti extends GremlinSqlSelect {
                     }
                 }
             }
-            System.out.println("graphTraversal: " + GroovyTranslator.of("g").translate(graphTraversal.asAdmin().getBytecode()));
-            System.out.println("union: " + GroovyTranslator.of("g").translate(__.union(byUnion.toArray(new GraphTraversal[0])).fold().asAdmin().getBytecode()));
             graphTraversal.by(__.union(byUnion.toArray(new GraphTraversal[0])).fold()).unfold();
         }
     }

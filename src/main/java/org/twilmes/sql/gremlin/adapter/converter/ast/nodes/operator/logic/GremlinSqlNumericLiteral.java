@@ -20,11 +20,18 @@
 package org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.logic;
 
 import org.apache.calcite.sql.SqlNumericLiteral;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.twilmes.sql.gremlin.adapter.converter.SqlMetadata;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.GremlinSqlNode;
+import java.sql.SQLException;
 
+/**
+ * This module is a GremlinSql equivalent of Calcite's GremlinSqlNumericLiteral.
+ *
+ * @author Lyndon Bauto (lyndonb@bitquilltech.com)
+ */
 public class GremlinSqlNumericLiteral extends GremlinSqlNode {
-    SqlNumericLiteral sqlNumericLiteral;
+    private final SqlNumericLiteral sqlNumericLiteral;
 
     public GremlinSqlNumericLiteral(final SqlNumericLiteral sqlNumericLiteral,
                                     final SqlMetadata sqlMetadata) {
@@ -32,4 +39,7 @@ public class GremlinSqlNumericLiteral extends GremlinSqlNode {
         this.sqlNumericLiteral = sqlNumericLiteral;
     }
 
+    public void appendTraversal(final GraphTraversal graphTraversal) throws SQLException {
+        graphTraversal.constant(sqlNumericLiteral.getValue());
+    }
 }
