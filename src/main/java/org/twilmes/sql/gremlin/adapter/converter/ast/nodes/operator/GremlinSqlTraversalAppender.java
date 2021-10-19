@@ -21,6 +21,7 @@ package org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.GremlinSqlNode;
+import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -29,5 +30,5 @@ import java.util.List;
  * @author Lyndon Bauto (lyndonb@bitquilltech.com)
  */
 public interface GremlinSqlTraversalAppender {
-    void appendTraversal(GraphTraversal<?, ?> graphTraversal, List<GremlinSqlNode> operands);
+    void appendTraversal(GraphTraversal<?, ?> graphTraversal, List<GremlinSqlNode> operands) throws SQLException;
 }

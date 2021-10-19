@@ -22,19 +22,18 @@ package org.twilmes.sql.gremlin.adapter.converter;
 import lombok.Getter;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.util.Gremlin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.twilmes.sql.gremlin.adapter.converter.schema.GremlinSchema;
-import org.twilmes.sql.gremlin.adapter.converter.schema.SchemaConfig;
-import org.twilmes.sql.gremlin.adapter.converter.schema.TableColumn;
-import org.twilmes.sql.gremlin.adapter.converter.schema.TableConfig;
-import org.twilmes.sql.gremlin.adapter.converter.schema.TableDef;
-import org.twilmes.sql.gremlin.adapter.converter.schema.TableRelationship;
+import org.twilmes.sql.gremlin.adapter.converter.schema.calcite.GremlinSchema;
+import org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinEdgeTable;
+import org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinProperty;
+import org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinTableBase;
+import org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinVertexTable;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -52,17 +51,15 @@ import java.util.Set;
 public class SqlMetadata {
     private static final Logger LOGGER = LoggerFactory.getLogger(SqlMetadata.class);
     private final GraphTraversalSource g;
-    private final SchemaConfig schemaConfig;
     private final GremlinSchema gremlinSchema;
     private final Map<String, String> tableRenameMap = new HashMap<>();
     private final Map<String, String> columnRenameMap = new HashMap<>();
     private final Map<String, List<String>> columnOutputListMap = new HashMap<>();
     private boolean isAggregate = false;
 
-    public SqlMetadata(final GraphTraversalSource g, final SchemaConfig schemaConfig) {
+    public SqlMetadata(final GraphTraversalSource g, final GremlinSchema gremlinSchema) {
         this.g = g;
-        this.schemaConfig = schemaConfig;
-        gremlinSchema = new GremlinSchema(schemaConfig);
+        this.gremlinSchema = gremlinSchema;
     }
 
     private static boolean isAggregate(final SqlNode sqlNode) {
@@ -85,29 +82,43 @@ public class SqlMetadata {
     }
 
     public boolean getIsColumnEdge(final String tableName, final String columnName) throws SQLException {
-        return getTableDef(tableName).isVertex && columnName.toUpperCase().endsWith("_ID");
+        return getGremlinTable(tableName).getIsVertex() &&
+                (columnName.endsWith(GremlinTableBase.IN_ID) || columnName.endsWith(GremlinTableBase.OUT_ID));
     }
 
     public String getColumnEdgeLabel(final String column) throws SQLException {
         final String columnName = getRenamedColumn(column);
-        if (!columnName.toUpperCase().endsWith("_ID")) {
-            throw new SQLException("Error: Edge labels must end with _ID.");
+        final GremlinTableBase gremlinTableBase;
+        if (columnName.endsWith(GremlinTableBase.IN_ID)) {
+            gremlinTableBase = getGremlinTable(column.substring(0, column.length() - GremlinTableBase.IN_ID.length()));
+        } else if (columnName.endsWith(GremlinTableBase.OUT_ID)) {
+            gremlinTableBase = getGremlinTable(column.substring(0, column.length() - GremlinTableBase.OUT_ID.length()));
+        } else {
+            throw new SQLException(String.format("Error: Edge labels must end with %s or %s.", GremlinTableBase.IN_ID, GremlinTableBase.OUT_ID));
         }
-        final TableDef tableDef = getTableDef(column.substring(0, column.length() - "_ID".length()));
-        if (tableDef.isVertex) {
+
+        if (gremlinTableBase.getIsVertex()) {
             throw new SQLException("Error: Expected edge table.");
         }
-        return tableDef.label;
+        return gremlinTableBase.getLabel();
     }
 
     public boolean isLeftInRightOut(final String leftVertexLabel, final String rightVertexLabel) {
-        return schemaConfig.getRelationships().stream().anyMatch(r ->
-                r.getInTable().equalsIgnoreCase(leftVertexLabel) && r.getOutTable().equalsIgnoreCase(rightVertexLabel));
+        for (final GremlinVertexTable gremlinVertexTable : gremlinSchema.getVertices()) {
+            if (gremlinVertexTable.hasInEdge(leftVertexLabel) && gremlinVertexTable.hasOutEdge(rightVertexLabel)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean isRightInLeftOut(final String leftVertexLabel, final String rightVertexLabel) {
-        return schemaConfig.getRelationships().stream().anyMatch(r ->
-                r.getOutTable().equalsIgnoreCase(leftVertexLabel) && r.getInTable().equalsIgnoreCase(rightVertexLabel));
+        for (final GremlinVertexTable gremlinVertexTable : gremlinSchema.getVertices()) {
+            if (gremlinVertexTable.hasInEdge(rightVertexLabel) && gremlinVertexTable.hasOutEdge(leftVertexLabel)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public Set<String> getRenamedColumns() {
@@ -118,39 +129,34 @@ public class SqlMetadata {
         columnOutputListMap.put(table, new ArrayList<>(columnOutputList));
     }
 
-    public Set<TableDef> getTables() throws SQLException {
-        final Set<TableDef> tables = new HashSet<>();
+    public Set<GremlinTableBase> getTables() throws SQLException {
+        final Set<GremlinTableBase> tables = new HashSet<>();
         for (final String table : tableRenameMap.values()) {
-            tables.add(getTableDef(table));
+            tables.add(getGremlinTable(table));
         }
         return tables;
     }
 
     public boolean isVertex(final String table) throws SQLException {
         final String renamedTableName = getRenamedTable(table);
-        for (final TableConfig tableConfig : schemaConfig.getTables()) {
-            if (tableConfig.getName().equalsIgnoreCase(renamedTableName)) {
+        for (final GremlinVertexTable gremlinVertexTable : gremlinSchema.getVertices()) {
+            if (gremlinVertexTable.getLabel().equalsIgnoreCase(renamedTableName)) {
                 return true;
             }
         }
-        for (final TableRelationship tableRelationship : schemaConfig.getRelationships()) {
-            if (tableRelationship.getEdgeLabel().equalsIgnoreCase(renamedTableName)) {
+        for (final GremlinEdgeTable gremlinEdgeTable : gremlinSchema.getEdges()) {
+            if (gremlinEdgeTable.getLabel().equalsIgnoreCase(renamedTableName)) {
                 return false;
             }
         }
         throw new SQLException("Error: Table {} does not exist.", renamedTableName);
     }
 
-    public TableDef getTableDef(final String table) throws SQLException {
+    public GremlinTableBase getGremlinTable(final String table) throws SQLException {
         final String renamedTableName = getRenamedTable(table);
-        for (final TableConfig tableConfig : schemaConfig.getTables()) {
-            if (tableConfig.getName().equalsIgnoreCase(renamedTableName)) {
-                return GremlinSchema.getTableDef(tableConfig, schemaConfig);
-            }
-        }
-        for (final TableRelationship tableRelationship : schemaConfig.getRelationships()) {
-            if (tableRelationship.getEdgeLabel().equalsIgnoreCase(renamedTableName)) {
-                return GremlinSchema.getTableDef(tableRelationship);
+        for (final GremlinTableBase gremlinTableBase : gremlinSchema.getAllTables()) {
+            if (gremlinTableBase.getLabel().equalsIgnoreCase(renamedTableName)) {
+                return gremlinTableBase;
             }
         }
         throw new SQLException(String.format("Error: Table %s does not exist.", renamedTableName));
@@ -172,18 +178,18 @@ public class SqlMetadata {
         return columnRenameMap.getOrDefault(column, column);
     }
 
-    public String getActualColumnName(final TableDef table, final String column) throws SQLException {
-        for (final TableColumn tableColumn : table.columns.values()) {
-            if (tableColumn.getName().equalsIgnoreCase(column)) {
-                return tableColumn.getName();
+    public String getActualColumnName(final GremlinTableBase table, final String column) throws SQLException {
+        for (final GremlinProperty gremlinProperty : table.getColumns().values()) {
+            if (gremlinProperty.getName().equalsIgnoreCase(column)) {
+                return gremlinProperty.getName();
             }
         }
-        throw new SQLException(String.format("Error: Column %s does not exist in table %s.", column, table.tableName));
+        throw new SQLException(String.format("Error: Column %s does not exist in table %s.", column, table.getLabel()));
     }
 
-    public boolean getTableHasColumn(final TableDef table, final String column) {
-        for (final TableColumn tableColumn : table.columns.values()) {
-            if (tableColumn.getName().equalsIgnoreCase(column)) {
+    public boolean getTableHasColumn(final GremlinTableBase table, final String column) {
+        for (final GremlinProperty gremlinProperty : table.getColumns().values()) {
+            if (gremlinProperty.getName().equalsIgnoreCase(column)) {
                 return true;
             }
         }
@@ -192,21 +198,21 @@ public class SqlMetadata {
 
     public String getActualTableName(final String table) throws SQLException {
         final String renamedTableName = getRenamedTable(table);
-        for (final TableConfig tableConfig : schemaConfig.getTables()) {
-            if (tableConfig.getName().equalsIgnoreCase(renamedTableName)) {
-                return tableConfig.getName();
+        for (final GremlinVertexTable gremlinVertexTable : gremlinSchema.getVertices()) {
+            if (gremlinVertexTable.getLabel().equalsIgnoreCase(renamedTableName)) {
+                return gremlinVertexTable.getLabel();
             }
         }
-        for (final TableRelationship tableRelationship : schemaConfig.getRelationships()) {
-            if (tableRelationship.getEdgeLabel().equalsIgnoreCase(renamedTableName)) {
-                return tableRelationship.getEdgeLabel();
+        for (final GremlinEdgeTable gremlinEdgeTable : gremlinSchema.getEdges()) {
+            if (gremlinEdgeTable.getLabel().equalsIgnoreCase(renamedTableName)) {
+                return gremlinEdgeTable.getLabel();
             }
         }
         throw new SQLException(String.format("Error: Table %s.", table));
     }
 
     public void checkAggregate(final SqlNodeList sqlNodeList) {
-        isAggregate = sqlNodeList.getList().stream().anyMatch(SqlMetadata::isAggregate);
+        isAggregate = sqlNodeList.getList().stream().allMatch(SqlMetadata::isAggregate);
     }
 
     public boolean getIsAggregate() {

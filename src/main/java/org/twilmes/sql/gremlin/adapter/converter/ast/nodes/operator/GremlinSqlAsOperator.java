@@ -27,6 +27,7 @@ import org.twilmes.sql.gremlin.adapter.converter.SqlMetadata;
 import org.twilmes.sql.gremlin.adapter.converter.SqlTraversalEngine;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operands.GremlinSqlIdentifier;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.GremlinSqlNode;
+import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.logic.GremlinSqlNumericLiteral;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -51,9 +52,21 @@ public class GremlinSqlAsOperator extends GremlinSqlOperator {
 
     @Override
     protected void appendTraversal(final GraphTraversal<?, ?> graphTraversal) throws SQLException {
+        if (sqlOperands.get(0) instanceof GremlinSqlBasicCall) {
+            ((GremlinSqlBasicCall) sqlOperands.get(0)).generateTraversal(graphTraversal);
+        } else if (!(sqlOperands.get(0) instanceof GremlinSqlIdentifier) && !(sqlOperands.get(0) instanceof GremlinSqlNumericLiteral)) {
+            throw new SQLException(
+                    "Error: expected operand to be GremlinSqlBasicCall or GremlinSqlIdentifier in GremlinSqlOperator.");
+        }
+
+        if (sqlOperands.size() == 1) {
+            if (sqlOperands.get(0) instanceof GremlinSqlIdentifier) {
+                SqlTraversalEngine
+                        .applySqlIdentifier((GremlinSqlIdentifier) sqlOperands.get(0), sqlMetadata, graphTraversal);
+            }
+        }
         if (sqlOperands.size() == 2 && sqlOperands.get(0) instanceof GremlinSqlIdentifier) {
-            SqlTraversalEngine
-                    .applySqlIdentifier((GremlinSqlIdentifier) sqlOperands.get(0), sqlMetadata, graphTraversal);
+            SqlTraversalEngine.applySqlIdentifier((GremlinSqlIdentifier) sqlOperands.get(0), sqlMetadata, graphTraversal);
         }
     }
 

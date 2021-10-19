@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
@@ -36,6 +37,8 @@ import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.GremlinSqlAs
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.GremlinSqlBasicCall;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.GremlinSqlOperator;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.aggregate.GremlinSqlAggFunction;
+import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.logic.GremlinSqlBinaryOperator;
+import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.logic.GremlinSqlNumericLiteral;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.select.GremlinSqlSelect;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.select.GremlinSqlSelectMulti;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.select.GremlinSqlSelectSingle;
@@ -48,6 +51,7 @@ import java.util.List;
  * This factory converts different types of Calcite's SqlNode/SqlOperator's to SqlGremlin equivalents.
  *
  * @author Lyndon Bauto (lyndonb@bitquilltech.com)
+ * @author Adapted from implementation by twilmes (https://github.com/twilmes/sql-gremlin)
  */
 public class GremlinSqlFactory {
     private static SqlMetadata sqlMetadata = null;
@@ -84,6 +88,9 @@ public class GremlinSqlFactory {
         } else if (sqlOperator instanceof SqlAggFunction) {
             return new GremlinSqlAggFunction((SqlAggFunction) sqlOperator, createNodeList(sqlOperands),
                     getGremlinSqlMetadata());
+        } else if (sqlOperator instanceof SqlBinaryOperator) {
+            return new GremlinSqlBinaryOperator((SqlBinaryOperator) sqlOperator, createNodeList(sqlOperands),
+                    getGremlinSqlMetadata());
         }
         throw new SQLException(String.format("Error: Unknown operator: %s.", sqlOperator.getKind().sql));
     }
@@ -93,6 +100,8 @@ public class GremlinSqlFactory {
             return new GremlinSqlBasicCall((SqlBasicCall) sqlNode, getGremlinSqlMetadata());
         } else if (sqlNode instanceof SqlIdentifier) {
             return new GremlinSqlIdentifier((SqlIdentifier) sqlNode, getGremlinSqlMetadata());
+        } else if (sqlNode instanceof SqlNumericLiteral) {
+            return new GremlinSqlNumericLiteral((SqlNumericLiteral) sqlNode, getGremlinSqlMetadata());
         }
         throw new SQLException(String.format("Error: Unknown node: %s.", sqlNode.getClass().getName()));
     }

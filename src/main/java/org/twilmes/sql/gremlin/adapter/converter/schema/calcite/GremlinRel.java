@@ -17,19 +17,18 @@
  * under the License.
  */
 
-package org.twilmes.sql.gremlin.adapter.converter.schema;
+package org.twilmes.sql.gremlin.adapter.converter.schema.calcite;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import org.apache.tinkerpop.gremlin.structure.Direction;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.rel.RelNode;
 
 /**
- * Created by twilmes on 12/8/15.
+ * Created by twilmes on 9/25/15.
  * Modified by lyndonb-bq on 05/17/21.
  */
-@AllArgsConstructor
-@Getter
-public class LabelInfo {
-    private final String label;
-    private final Direction direction;
+public interface GremlinRel extends RelNode {
+    /**
+     * Calling convention for relational operations that occur in Gremlin.
+     */
+    Convention CONVENTION = new Convention.Impl("GREMLIN", GremlinRel.class);
 }

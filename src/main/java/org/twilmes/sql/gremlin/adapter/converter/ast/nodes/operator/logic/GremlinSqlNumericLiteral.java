@@ -17,39 +17,29 @@
  * under the License.
  */
 
-package org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operands;
+package org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.logic;
 
-import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNumericLiteral;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.twilmes.sql.gremlin.adapter.converter.SqlMetadata;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.GremlinSqlNode;
 import java.sql.SQLException;
 
 /**
- * This module is a GremlinSql equivalent of Calcite's SqlIdentifier.
+ * This module is a GremlinSql equivalent of Calcite's GremlinSqlNumericLiteral.
  *
  * @author Lyndon Bauto (lyndonb@bitquilltech.com)
  */
-public class GremlinSqlIdentifier extends GremlinSqlNode {
-    SqlIdentifier sqlIdentifier;
+public class GremlinSqlNumericLiteral extends GremlinSqlNode {
+    private final SqlNumericLiteral sqlNumericLiteral;
 
-    public GremlinSqlIdentifier(final SqlIdentifier sqlIdentifier, final SqlMetadata sqlMetadata) {
-        super(sqlIdentifier, sqlMetadata);
-        this.sqlIdentifier = sqlIdentifier;
+    public GremlinSqlNumericLiteral(final SqlNumericLiteral sqlNumericLiteral,
+                                    final SqlMetadata sqlMetadata) {
+        super(sqlNumericLiteral, sqlMetadata);
+        this.sqlNumericLiteral = sqlNumericLiteral;
     }
 
-
-    public String getName(final int idx) throws SQLException {
-        if (idx >= sqlIdentifier.names.size()) {
-            throw new SQLException("Index of identifier > size of name list for identifier");
-        }
-        return sqlIdentifier.names.get(idx);
-    }
-
-
-    public String getColumn() throws SQLException {
-        if (sqlIdentifier.names.size() < 1) {
-            throw new SQLException("Expected at least one name in list for identifier");
-        }
-        return sqlIdentifier.names.get(sqlIdentifier.names.size() - 1);
+    public void appendTraversal(final GraphTraversal graphTraversal) throws SQLException {
+        graphTraversal.constant(sqlNumericLiteral.getValue());
     }
 }

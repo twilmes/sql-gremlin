@@ -20,9 +20,10 @@
 package org.twilmes.sql.gremlin.adapter.results;
 
 import lombok.Getter;
+import lombok.Setter;
 import org.twilmes.sql.gremlin.adapter.converter.SqlMetadata;
-import org.twilmes.sql.gremlin.adapter.converter.schema.TableColumn;
-import org.twilmes.sql.gremlin.adapter.converter.schema.TableDef;
+import org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinTableBase;
+import org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinProperty;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,17 +37,18 @@ public class SqlGremlinQueryResult {
     private final Object assertEmptyLock = new Object();
     private final BlockingQueue<List<Object>> blockingQueueRows = new LinkedBlockingQueue<>();
     private boolean isEmpty = false;
+    private SQLException paginationException = null;
     private Thread currThread = null;
+    public static String EMPTY_MESSAGE = "No more results.";
 
-    public SqlGremlinQueryResult(final List<String> columns, final List<TableDef> tableConfigs) {
+    public SqlGremlinQueryResult(final List<String> columns, final List<GremlinTableBase> gremlinTableBases) throws SQLException {
         this.columns = columns;
 
         for (final String column : columns) {
-            TableColumn col = null;
-            for (final TableDef tableConfig : tableConfigs) {
-
-                if (tableConfig.columns.containsKey(column)) {
-                    col = tableConfig.getColumn(column);
+            GremlinProperty col = null;
+            for (final GremlinTableBase gremlinTableBase : gremlinTableBases) {
+                if (gremlinTableBase.getColumns().containsKey(column)) {
+                    col = gremlinTableBase.getColumn(column);
                     break;
                 }
             }
@@ -54,19 +56,35 @@ public class SqlGremlinQueryResult {
         }
     }
 
-    public SqlGremlinQueryResult(final List<String> columns, final List<TableDef> tableConfigs,
-                                 final SqlMetadata sqlMetadata) {
+    public SqlGremlinQueryResult(final List<String> columns, final List<GremlinTableBase> gremlinTableBases,
+                                 final SqlMetadata sqlMetadata) throws SQLException {
         this.columns = columns;
         for (final String column : columns) {
-            TableColumn col = null;
-            for (final TableDef tableConfig : tableConfigs) {
-                if (sqlMetadata.getTableHasColumn(tableConfig, column)) {
-                    col = tableConfig.getColumn(column);
+            GremlinProperty col = null;
+            for (final GremlinTableBase gremlinTableBase : gremlinTableBases) {
+                if (sqlMetadata.getTableHasColumn(gremlinTableBase, column)) {
+                    col = gremlinTableBase.getColumn(column);
                     break;
                 }
             }
             columnTypes.add((col == null || col.getType() == null) ? "string" : col.getType());
         }
+    }
+
+    public void setPaginationException(final SQLException e) {
+        synchronized (assertEmptyLock) {
+            paginationException = e;
+            if (currThread != null && blockingQueueRows.size() == 0) {
+                currThread.interrupt();
+            }
+        }
+    }
+
+    public boolean getIsEmpty() throws SQLException {
+        if (paginationException == null) {
+            return isEmpty;
+        }
+        throw paginationException;
     }
 
     public void assertIsEmpty() {
@@ -87,13 +105,16 @@ public class SqlGremlinQueryResult {
             synchronized (assertEmptyLock) {
                 // Pass current thread in, and interrupt in assertIsEmpty.
                 this.currThread = Thread.currentThread();
-                if (isEmpty && blockingQueueRows.size() == 0) {
-                    throw new SQLException("No more results.");
+                if (getIsEmpty() && blockingQueueRows.size() == 0) {
+                    throw new SQLException(EMPTY_MESSAGE);
                 }
             }
             return this.blockingQueueRows.take();
         } catch (final InterruptedException ignored) {
-            throw new SQLException("No more results.");
+            if (paginationException != null) {
+                throw paginationException;
+            }
+            throw new SQLException(EMPTY_MESSAGE);
         }
     }
 }

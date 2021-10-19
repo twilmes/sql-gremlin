@@ -17,24 +17,19 @@
  * under the License.
  */
 
-package org.twilmes.sql.gremlin.adapter.converter.schema;
+package org.twilmes.sql.gremlin.adapter.converter.schema.gremlin;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import java.util.List;
 
 /**
  * Created by twilmes on 10/10/15.
  * Modified by lyndonb-bq on 05/17/21.
  */
 @Getter
-@Setter
 @AllArgsConstructor
-public class SchemaConfig {
-    private List<TableConfig> tables;
-    private List<TableRelationship> relationships;
-
-    public SchemaConfig() {
-    }
+public class GremlinProperty {
+    private final String name;
+    private final String type;
 }
