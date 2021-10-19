@@ -81,7 +81,6 @@ public class GremlinSqlSelectSingle extends GremlinSqlSelect {
         if (columns.size() != 1) {
             throw new SQLException("Error: Single select has multi-table return.");
         }
-        System.out.println("Starting pagination");
         executor.execute(new Pagination(new SimpleDataReader(sqlMetadata.getTables().iterator().next(), columns.get(0)),
                 graphTraversal, sqlGremlinQueryResult));
         executor.shutdown();

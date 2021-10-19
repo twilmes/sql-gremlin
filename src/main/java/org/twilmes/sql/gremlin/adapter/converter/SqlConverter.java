@@ -79,7 +79,6 @@ public class SqlConverter {
 
     // NOT THREAD SAFE
     public SqlGremlinQueryResult executeQuery(final String query) throws SQLException {
-        System.out.println("Received query : " + query);
         final SqlMetadata sqlMetadata = new SqlMetadata(g, gremlinSchema);
         GremlinSqlFactory.setSqlMetadata(sqlMetadata);
         // Not sure if this can be re-used?

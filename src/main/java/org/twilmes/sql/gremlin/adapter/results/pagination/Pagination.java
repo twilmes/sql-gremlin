@@ -44,14 +44,12 @@ public class Pagination implements Runnable {
     @Override
     public void run() {
         try {
-            System.out.println("hasNext()");
             while (traversal.hasNext()) {
                 final List<Object> rows = new ArrayList<>();
                 traversal.next(pageSize).forEach(map -> rows.add(getRowFromMap.execute((Map<String, Object>) map)));
                 convertAndInsertResult(sqlGremlinQueryResult, rows);
             }
             // If we run out of traversal data (or hit our limit), stop and signal to the result that it is done.
-            System.out.println("done");
             sqlGremlinQueryResult.assertIsEmpty();
         } catch (final Exception e) {
             final StringWriter sw = new StringWriter();
