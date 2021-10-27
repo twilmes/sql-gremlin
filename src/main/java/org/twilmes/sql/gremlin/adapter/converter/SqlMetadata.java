@@ -188,8 +188,9 @@ public class SqlMetadata {
     }
 
     public boolean getTableHasColumn(final GremlinTableBase table, final String column) {
+        final String actualColumnName = getRenamedColumn(column);
         for (final GremlinProperty gremlinProperty : table.getColumns().values()) {
-            if (gremlinProperty.getName().equalsIgnoreCase(column)) {
+            if (gremlinProperty.getName().equalsIgnoreCase(actualColumnName)) {
                 return true;
             }
         }

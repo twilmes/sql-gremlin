@@ -51,8 +51,8 @@ public class GremlinEdgeTable extends GremlinTableBase {
         // Get in and out foreign keys of edge.
         inOutTablePairs.forEach(inOutPair -> {
             // Uppercase vertex label appended with 'IN_ID'/'OUT_ID' represents a connected vertex, this is a long type.
-            final GremlinProperty inFk = new GremlinProperty(inOutPair.getKey() + GremlinTableBase.IN_ID, "long");
-            final GremlinProperty outFk = new GremlinProperty(inOutPair.getValue() + GremlinTableBase.OUT_ID, "long");
+            final GremlinProperty inFk = new GremlinProperty(inOutPair.getKey() + GremlinTableBase.IN_ID, "string");
+            final GremlinProperty outFk = new GremlinProperty(inOutPair.getValue() + GremlinTableBase.OUT_ID, "string");
             columnsWithPKFK.put(inFk.getName(), inFk);
             columnsWithPKFK.put(outFk.getName(), inFk);
         });

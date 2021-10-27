@@ -41,22 +41,6 @@ public class SqlGremlinQueryResult {
     private SQLException paginationException = null;
     private Thread currThread = null;
 
-    public SqlGremlinQueryResult(final List<String> columns, final List<GremlinTableBase> gremlinTableBases)
-            throws SQLException {
-        this.columns = columns;
-
-        for (final String column : columns) {
-            GremlinProperty col = null;
-            for (final GremlinTableBase gremlinTableBase : gremlinTableBases) {
-                if (gremlinTableBase.getColumns().containsKey(column)) {
-                    col = gremlinTableBase.getColumn(column);
-                    break;
-                }
-            }
-            columnTypes.add((col == null || col.getType() == null) ? "string" : col.getType());
-        }
-    }
-
     public SqlGremlinQueryResult(final List<String> columns, final List<GremlinTableBase> gremlinTableBases,
                                  final SqlMetadata sqlMetadata) throws SQLException {
         this.columns = columns;
