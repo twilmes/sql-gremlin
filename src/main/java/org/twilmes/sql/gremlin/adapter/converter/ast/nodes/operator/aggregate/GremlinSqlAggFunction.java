@@ -49,7 +49,6 @@ public class GremlinSqlAggFunction extends GremlinSqlOperator {
                 put(SqlKind.SUM, GremlinSqlAggFunctionImplementations.SUM);
                 put(SqlKind.MIN, GremlinSqlAggFunctionImplementations.MIN);
                 put(SqlKind.MAX, GremlinSqlAggFunctionImplementations.MAX);
-
         /*
         put(SqlKind.LEAD, null);
         put(SqlKind.LAG, null);

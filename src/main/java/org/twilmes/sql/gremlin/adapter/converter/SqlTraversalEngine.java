@@ -23,9 +23,12 @@ import org.apache.tinkerpop.gremlin.groovy.jsr223.GroovyTranslator;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operands.GremlinSqlIdentifier;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.select.StepDirection;
 import org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinTableBase;
+import org.twilmes.sql.gremlin.adapter.results.SqlGremlinQueryResult;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +42,7 @@ import static org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinTa
  * @author Lyndon Bauto (lyndonb@bitquilltech.com)
  */
 public class SqlTraversalEngine {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SqlTraversalEngine.class);
 
     public static GraphTraversal<?, ?> generateInitialSql(final List<GremlinSqlIdentifier> gremlinSqlIdentifiers,
                                                           final SqlMetadata sqlMetadata,
@@ -116,13 +120,18 @@ public class SqlTraversalEngine {
 
         // Primary/foreign key, need to traverse appropriately.
         if (!columnName.endsWith(GremlinTableBase.ID)) {
-            graphTraversal.choose(__.has(columnName), __.values(columnName), __.constant(""));
+            if (sqlMetadata.getIsAggregate()) {
+                LOGGER.info("Aggregate "  + columnName);
+                graphTraversal.values(columnName);
+            } else {
+                LOGGER.info("Not Aggregate " + columnName);
+                graphTraversal.choose(__.has(columnName), __.values(columnName), __.constant(SqlGremlinQueryResult.NULL_VALUE));
+            }
         } else {
             // It's this vertex/edge.
             if (columnName.toLowerCase().startsWith(gremlinTableBase.getLabel())) {
                 graphTraversal.id();
             } else {
-                final GraphTraversal<?, ?> edgeGrab;
                 if (columnName.endsWith(IN_ID)) {
                     // Vertices can have many connected, edges (thus we need to fold). Edges can only connect to 1 vertex.
                     if (gremlinTableBase.getIsVertex()) {

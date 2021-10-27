@@ -20,10 +20,9 @@
 package org.twilmes.sql.gremlin.adapter.results;
 
 import lombok.Getter;
-import lombok.Setter;
 import org.twilmes.sql.gremlin.adapter.converter.SqlMetadata;
-import org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinTableBase;
 import org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinProperty;
+import org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinTableBase;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +31,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 @Getter
 public class SqlGremlinQueryResult {
+    public static String EMPTY_MESSAGE = "No more results.";
+    public static String NULL_VALUE = "$%#NULL#%$";
     private final List<String> columns;
     private final List<String> columnTypes = new ArrayList<>();
     private final Object assertEmptyLock = new Object();
@@ -39,9 +40,9 @@ public class SqlGremlinQueryResult {
     private boolean isEmpty = false;
     private SQLException paginationException = null;
     private Thread currThread = null;
-    public static String EMPTY_MESSAGE = "No more results.";
 
-    public SqlGremlinQueryResult(final List<String> columns, final List<GremlinTableBase> gremlinTableBases) throws SQLException {
+    public SqlGremlinQueryResult(final List<String> columns, final List<GremlinTableBase> gremlinTableBases)
+            throws SQLException {
         this.columns = columns;
 
         for (final String column : columns) {
@@ -97,24 +98,35 @@ public class SqlGremlinQueryResult {
     }
 
     public void addResults(final List<List<Object>> rows) {
+        for (final List<Object> row : rows) {
+            for (int i = 0; i < row.size(); i++) {
+                if (row.get(i) instanceof String && row.get(i).toString().equals(NULL_VALUE)) {
+                    row.set(i, null);
+                }
+            }
+        }
         blockingQueueRows.addAll(rows);
     }
 
+    private boolean getShouldExit() throws SQLException {
+        synchronized (assertEmptyLock) {
+            return (getIsEmpty() && blockingQueueRows.size() == 0);
+        }
+    }
+
     public Object getResult() throws SQLException {
-        try {
-            synchronized (assertEmptyLock) {
-                // Pass current thread in, and interrupt in assertIsEmpty.
-                this.currThread = Thread.currentThread();
-                if (getIsEmpty() && blockingQueueRows.size() == 0) {
-                    throw new SQLException(EMPTY_MESSAGE);
+        synchronized (assertEmptyLock) {
+            this.currThread = Thread.currentThread();
+        }
+        while (!getShouldExit()) {
+            try {
+                return this.blockingQueueRows.take();
+            } catch (final InterruptedException ignored) {
+                if (paginationException != null) {
+                    throw paginationException;
                 }
             }
-            return this.blockingQueueRows.take();
-        } catch (final InterruptedException ignored) {
-            if (paginationException != null) {
-                throw paginationException;
-            }
-            throw new SQLException(EMPTY_MESSAGE);
         }
+        throw new SQLException(EMPTY_MESSAGE);
     }
 }

@@ -80,7 +80,7 @@ public abstract class GremlinSqlSelect extends GremlinSqlNode {
                                                  SqlGremlinQueryResult sqlGremlinQueryResult) throws SQLException;
 
     public String getStringTraversal() throws SQLException {
-        return GroovyTranslator.of("g").translate(generateTraversal().asAdmin().getBytecode());
+        return GroovyTranslator.of("g").translate(generateTraversal().asAdmin().getBytecode()).toString();
     }
 
     abstract public GraphTraversal<?, ?> generateTraversal() throws SQLException;
@@ -109,6 +109,9 @@ public abstract class GremlinSqlSelect extends GremlinSqlNode {
 
         final List<String> renamedColumnsTemp = new ArrayList<>(columnsRenamed);
         final GraphTraversal<?, ?> subGraphTraversal = SqlTraversalEngine.applyColumnRenames(renamedColumnsTemp);
+        // for (int i = 0; i < columnsRenamed.size(); i++) {
+        //     sqlMetadata.addRenamedColumn(null, columnsRenamed.get(i));
+        // }
         sqlMetadata.setColumnOutputList(table, columnsRenamed);
         for (final GremlinSqlNode gremlinSqlNode : sqlNodeList) {
             if (gremlinSqlNode instanceof GremlinSqlIdentifier) {

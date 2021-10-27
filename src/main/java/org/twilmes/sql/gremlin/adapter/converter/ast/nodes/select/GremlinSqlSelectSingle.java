@@ -113,6 +113,7 @@ public class GremlinSqlSelectSingle extends GremlinSqlSelect {
         applySelectValues(graphTraversal);
         applyOrderBy(graphTraversal, label);
         applyHaving(graphTraversal);
+        applyWhere(graphTraversal);
         SqlTraversalEngine.applyAggregateFold(sqlMetadata, graphTraversal);
         SqlTraversalEngine.addProjection(gremlinSqlIdentifiers, sqlMetadata, graphTraversal);
         final String projectLabel = gremlinSqlIdentifiers.get(1).getName(0);
@@ -129,7 +130,7 @@ public class GremlinSqlSelectSingle extends GremlinSqlSelect {
     }
 
     public String getStringTraversal() throws SQLException {
-        return GroovyTranslator.of("g").translate(generateTraversal().asAdmin().getBytecode());
+        return GroovyTranslator.of("g").translate(generateTraversal().asAdmin().getBytecode()).toString();
     }
 
     private void applySelectValues(final GraphTraversal<?, ?> graphTraversal) {
@@ -159,7 +160,7 @@ public class GremlinSqlSelectSingle extends GremlinSqlSelect {
     protected void applyOrderBy(final GraphTraversal<?, ?> graphTraversal, final String table) throws SQLException {
         graphTraversal.order();
         if (sqlSelect.getOrderList() == null || sqlSelect.getOrderList().getList().isEmpty()) {
-            graphTraversal.by(__.unfold().values());
+            graphTraversal.by(__.unfold().id());
             return;
         }
         final List<GremlinSqlNode> gremlinSqlIdentifiers = new ArrayList<>();
@@ -196,6 +197,15 @@ public class GremlinSqlSelectSingle extends GremlinSqlSelect {
             return;
         }
         final GremlinSqlBasicCall gremlinSqlBasicCall = GremlinSqlFactory.createNodeCheckType(sqlSelect.getHaving(),
+                GremlinSqlBasicCall.class);
+        gremlinSqlBasicCall.generateTraversal(graphTraversal);
+    }
+
+    protected void applyWhere(final GraphTraversal<?, ?> graphTraversal) throws SQLException {
+        if (sqlSelect.getWhere() == null) {
+            return;
+        }
+        final GremlinSqlBasicCall gremlinSqlBasicCall = GremlinSqlFactory.createNodeCheckType(sqlSelect.getWhere(),
                 GremlinSqlBasicCall.class);
         gremlinSqlBasicCall.generateTraversal(graphTraversal);
     }

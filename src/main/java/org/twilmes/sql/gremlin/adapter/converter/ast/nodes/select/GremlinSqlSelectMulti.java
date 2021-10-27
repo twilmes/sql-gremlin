@@ -254,7 +254,7 @@ public class GremlinSqlSelectMulti extends GremlinSqlSelect {
     protected void applyOrderBy(final GraphTraversal<?, ?> graphTraversal, final String edgeLabel, final String inVRename, final String outVRename) throws SQLException {
         graphTraversal.order();
         if (sqlSelect.getOrderList() == null || sqlSelect.getOrderList().getList().isEmpty()) {
-            graphTraversal.by(__.unfold().values());
+            graphTraversal.by(__.unfold().id());
             return;
         }
         final List<GremlinSqlIdentifier> gremlinSqlIdentifiers = new ArrayList<>();
@@ -279,6 +279,9 @@ public class GremlinSqlSelectMulti extends GremlinSqlSelect {
     }
 
     protected void applyHaving(final GraphTraversal<?, ?> graphTraversal) throws SQLException {
+        if (sqlSelect.getHaving() == null) {
+            return;
+        }
         throw new SQLException("Error: HAVING is not currently supported for JOIN.");
     }
 }
