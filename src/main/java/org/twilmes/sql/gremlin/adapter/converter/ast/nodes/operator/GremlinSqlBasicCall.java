@@ -48,7 +48,8 @@ public class GremlinSqlBasicCall extends GremlinSqlNode {
             throws SQLException {
         super(sqlBasicCall, sqlMetadata);
         this.sqlBasicCall = sqlBasicCall;
-        gremlinSqlOperator = GremlinSqlFactory.createOperator(sqlBasicCall.getOperator(), sqlBasicCall.getOperandList());
+        gremlinSqlOperator =
+                GremlinSqlFactory.createOperator(sqlBasicCall.getOperator(), sqlBasicCall.getOperandList());
         gremlinSqlNodes = GremlinSqlFactory.createNodeList(sqlBasicCall.getOperandList());
     }
 
@@ -71,27 +72,25 @@ public class GremlinSqlBasicCall extends GremlinSqlNode {
 
     public String getRename() throws SQLException {
         if (gremlinSqlOperator instanceof GremlinSqlAsOperator) {
-            if (gremlinSqlNodes.size() == 2 && gremlinSqlNodes.get(1) instanceof GremlinSqlIdentifier) {
-                return ((GremlinSqlIdentifier) gremlinSqlNodes.get(1)).getName(0);
-            }
-            throw new SQLException("Expected 2 nodes with second node of SqlIdentifier for rename with AS.");
+            return ((GremlinSqlAsOperator) gremlinSqlOperator).getRename();
         } else if (gremlinSqlOperator instanceof GremlinSqlAggFunction) {
             if (gremlinSqlNodes.size() == 1 && gremlinSqlNodes.get(0) instanceof GremlinSqlIdentifier) {
-                return ((GremlinSqlIdentifier) gremlinSqlNodes.get(0)).getName(1);
+                return ((GremlinSqlIdentifier) gremlinSqlNodes.get(0)).getColumn();
             }
         }
         throw new SQLException("Unable to determine column rename.");
     }
 
-    public String getOriginalRename() throws SQLException {
+    public String getActual() throws SQLException {
         if (gremlinSqlOperator instanceof GremlinSqlAsOperator) {
-            if (gremlinSqlNodes.size() == 2 && gremlinSqlNodes.get(1) instanceof GremlinSqlIdentifier) {
-                GremlinSqlAsOperator gremlinSqlAsOperator = (GremlinSqlAsOperator) gremlinSqlOperator;
-                return gremlinSqlAsOperator.getName(0, 1);
+            return ((GremlinSqlAsOperator) gremlinSqlOperator).getActual();
+        } else if (gremlinSqlOperator instanceof GremlinSqlAggFunction) {
+            if (gremlinSqlNodes.size() == 1 && gremlinSqlNodes.get(0) instanceof GremlinSqlIdentifier) {
+                return ((GremlinSqlIdentifier) gremlinSqlNodes.get(0)).getColumn();
+            } else if (gremlinSqlNodes.size() == 2 && gremlinSqlNodes.get(1) instanceof GremlinSqlIdentifier) {
+                return ((GremlinSqlIdentifier) gremlinSqlNodes.get(1)).getColumn();
             }
-            throw new SQLException("Expected 2 nodes with second node of SqlIdentifier for rename with AS.");
         }
         throw new SQLException("Unable to determine column rename.");
     }
-
 }
