@@ -175,8 +175,8 @@ public class GremlinSqlSelectSingle extends GremlinSqlSelect {
     private void toAppendToByGraphTraversal(final GremlinSqlNode gremlinSqlNode, final String table,
                                             final GraphTraversal graphTraversal)
             throws SQLException {
+        final GraphTraversal graphTraversal1 = __.unfold();
         if (gremlinSqlNode instanceof GremlinSqlIdentifier) {
-            final GraphTraversal graphTraversal1 = __.unfold();
             final String column = sqlMetadata
                     .getActualColumnName(sqlMetadata.getGremlinTable(table),
                             ((GremlinSqlIdentifier) gremlinSqlNode).getColumn());
@@ -185,8 +185,8 @@ public class GremlinSqlSelectSingle extends GremlinSqlSelect {
             } else {
                 graphTraversal1.values(sqlMetadata.getActualColumnName(sqlMetadata.getGremlinTable(table), column));
             }
+            graphTraversal.by(graphTraversal1);
         } else if (gremlinSqlNode instanceof GremlinSqlBasicCall) {
-            final GraphTraversal graphTraversal1 = __.unfold();
             final GremlinSqlBasicCall gremlinSqlBasicCall = (GremlinSqlBasicCall) gremlinSqlNode;
             gremlinSqlBasicCall.generateTraversal(graphTraversal1);
             if (gremlinSqlBasicCall.getGremlinSqlOperator() instanceof GremlinSqlPostFixOperator) {
