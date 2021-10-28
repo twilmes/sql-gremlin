@@ -221,4 +221,9 @@ public class SqlMetadata {
     public boolean getIsAggregate() {
         return isAggregate;
     }
+
+    public GremlinProperty getGremlinProperty(final String table, final String column) throws SQLException {
+        String actualColumnName = getActualColumnName(getGremlinTable(table), column);
+        return getGremlinTable(table).getColumn(actualColumnName);
+    }
 }

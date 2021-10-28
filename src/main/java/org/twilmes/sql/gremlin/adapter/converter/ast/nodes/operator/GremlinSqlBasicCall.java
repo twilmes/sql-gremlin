@@ -82,4 +82,16 @@ public class GremlinSqlBasicCall extends GremlinSqlNode {
         }
         throw new SQLException("Unable to determine column rename.");
     }
+
+    public String getOriginalRename() throws SQLException {
+        if (gremlinSqlOperator instanceof GremlinSqlAsOperator) {
+            if (gremlinSqlNodes.size() == 2 && gremlinSqlNodes.get(1) instanceof GremlinSqlIdentifier) {
+                GremlinSqlAsOperator gremlinSqlAsOperator = (GremlinSqlAsOperator) gremlinSqlOperator;
+                return gremlinSqlAsOperator.getName(0, 1);
+            }
+            throw new SQLException("Expected 2 nodes with second node of SqlIdentifier for rename with AS.");
+        }
+        throw new SQLException("Unable to determine column rename.");
+    }
+
 }
