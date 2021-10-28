@@ -113,14 +113,14 @@ public class GremlinSqlSelectMulti extends GremlinSqlSelect {
             throw new SQLException("Error: Expected left and right to have AS operators.");
         }
         final GremlinSqlAsOperator leftAsOperator = (GremlinSqlAsOperator) left.getGremlinSqlOperator();
-        final String leftTableName = sqlMetadata.getActualTableName(leftAsOperator.getName(0, 1));
-        final String leftTableRename = leftAsOperator.getName(1, 0);
+        final String leftTableName = leftAsOperator.getActual();
+        final String leftTableRename = leftAsOperator.getRename();
         sqlMetadata.addRenamedTable(leftTableName, leftTableRename);
         final String leftColumn = gremlinSqlJoinComparison.getColumn(leftTableRename);
 
         final GremlinSqlAsOperator rightAsOperator = (GremlinSqlAsOperator) right.getGremlinSqlOperator();
-        final String rightTableName = sqlMetadata.getActualTableName(rightAsOperator.getName(0, 1));
-        final String rightTableRename = rightAsOperator.getName(1, 0);
+        final String rightTableName = rightAsOperator.getActual();
+        final String rightTableRename = rightAsOperator.getRename();
         sqlMetadata.addRenamedTable(rightTableName, rightTableRename);
         final String rightColumn = gremlinSqlJoinComparison.getColumn(rightTableRename);
 

@@ -193,6 +193,8 @@ public class GremlinSqlSelectSingle extends GremlinSqlSelect {
                 final GremlinSqlPostFixOperator gremlinSqlPostFixOperator =
                         (GremlinSqlPostFixOperator) gremlinSqlBasicCall.getGremlinSqlOperator();
                 graphTraversal.by(graphTraversal1, gremlinSqlPostFixOperator.getOrder());
+            } else {
+                graphTraversal.by(graphTraversal1);
             }
         }
     }
