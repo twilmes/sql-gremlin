@@ -121,10 +121,8 @@ public class SqlTraversalEngine {
         // Primary/foreign key, need to traverse appropriately.
         if (!columnName.endsWith(GremlinTableBase.ID)) {
             if (sqlMetadata.getIsAggregate()) {
-                LOGGER.info("Aggregate "  + columnName);
                 graphTraversal.values(columnName);
             } else {
-                LOGGER.info("Not Aggregate " + columnName);
                 graphTraversal.choose(__.has(columnName), __.values(columnName), __.constant(SqlGremlinQueryResult.NULL_VALUE));
             }
         } else {

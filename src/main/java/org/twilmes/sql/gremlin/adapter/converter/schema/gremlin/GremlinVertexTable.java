@@ -43,7 +43,7 @@ public class GremlinVertexTable extends GremlinTableBase {
         final Map<String, GremlinProperty> columnsWithPKFK =
                 columns.stream().collect(Collectors.toMap(GremlinProperty::getName, t -> t));
 
-        // Uppercase vertex label appended with '_ID' represents an vertex, this is a long type.
+        // Uppercase vertex label appended with '_ID' represents an vertex, this is a string type.
         final GremlinProperty pk = new GremlinProperty(label + ID, "string");
         columnsWithPKFK.put(pk.getName(), pk);
 

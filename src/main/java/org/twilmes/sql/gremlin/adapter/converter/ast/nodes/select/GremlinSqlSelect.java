@@ -107,7 +107,6 @@ public abstract class GremlinSqlSelect extends GremlinSqlNode {
             }
         }
 
-
         final List<String> renamedColumnsTemp = new ArrayList<>(columnsRenamed);
         final GraphTraversal<?, ?> subGraphTraversal = SqlTraversalEngine.applyColumnRenames(renamedColumnsTemp);
         sqlMetadata.setColumnOutputList(table, columnsRenamed);
