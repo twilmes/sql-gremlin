@@ -68,6 +68,22 @@ public class GremlinSqlAsOperator extends GremlinSqlOperator {
         if (sqlOperands.size() == 2 && sqlOperands.get(0) instanceof GremlinSqlIdentifier) {
             SqlTraversalEngine.applySqlIdentifier((GremlinSqlIdentifier) sqlOperands.get(0), sqlMetadata, graphTraversal);
         }
+
+        sqlMetadata.addRenamedColumn(getActual(), getRename());
+    }
+
+    public String getActual() throws SQLException {
+        if (sqlOperands.size() != 2) {
+            throw new SQLException("Error: Expected two operands for SQL AS statement.");
+        }
+        return ((GremlinSqlIdentifier) sqlOperands.get(0)).getColumn();
+    }
+
+    public String getRename() throws SQLException {
+        if (sqlOperands.size() != 2) {
+            throw new SQLException("Error: Expected two operands for SQL AS statement.");
+        }
+        return ((GremlinSqlIdentifier) sqlOperands.get(1)).getColumn();
     }
 
     public String getName(final int operandIdx, final int nameIdx) throws SQLException {

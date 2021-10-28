@@ -98,8 +98,11 @@ public abstract class GremlinSqlSelect extends GremlinSqlNode {
         final List<String> columnsRenamed = new ArrayList<>();
         for (final GremlinSqlNode gremlinSqlNode : sqlNodeList) {
             if (gremlinSqlNode instanceof GremlinSqlIdentifier) {
+                System.out.println("=== NEW ID NAME: " + ((GremlinSqlIdentifier) gremlinSqlNode).getName(1));
                 columnsRenamed.add(((GremlinSqlIdentifier) gremlinSqlNode).getName(1));
             } else if (gremlinSqlNode instanceof GremlinSqlBasicCall) {
+                System.out.println("=== NEW BC NAME: " + (((GremlinSqlBasicCall) gremlinSqlNode).getRename()));
+                System.out.println("=== ORIGINAL BC NAME: " + (((GremlinSqlBasicCall) gremlinSqlNode).getOriginalRename()));
                 columnsRenamed.add(((GremlinSqlBasicCall) gremlinSqlNode).getRename());
             } else {
                 throw new SQLException(String.format(
@@ -107,11 +110,9 @@ public abstract class GremlinSqlSelect extends GremlinSqlNode {
             }
         }
 
+
         final List<String> renamedColumnsTemp = new ArrayList<>(columnsRenamed);
         final GraphTraversal<?, ?> subGraphTraversal = SqlTraversalEngine.applyColumnRenames(renamedColumnsTemp);
-        for (int i = 0; i < columnsRenamed.size(); i++) {
-            sqlMetadata.addRenamedColumn(null, columnsRenamed.get(i));
-        }
         sqlMetadata.setColumnOutputList(table, columnsRenamed);
         for (final GremlinSqlNode gremlinSqlNode : sqlNodeList) {
             if (gremlinSqlNode instanceof GremlinSqlIdentifier) {

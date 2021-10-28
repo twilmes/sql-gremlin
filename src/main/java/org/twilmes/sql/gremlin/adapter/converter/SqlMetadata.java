@@ -26,7 +26,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.util.Gremlin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.twilmes.sql.gremlin.adapter.converter.schema.calcite.GremlinSchema;
@@ -179,8 +178,9 @@ public class SqlMetadata {
     }
 
     public String getActualColumnName(final GremlinTableBase table, final String column) throws SQLException {
+        final String actualColumnName = getRenamedColumn(column);
         for (final GremlinProperty gremlinProperty : table.getColumns().values()) {
-            if (gremlinProperty.getName().equalsIgnoreCase(column)) {
+            if (gremlinProperty.getName().equalsIgnoreCase(actualColumnName)) {
                 return gremlinProperty.getName();
             }
         }
@@ -218,5 +218,10 @@ public class SqlMetadata {
 
     public boolean getIsAggregate() {
         return isAggregate;
+    }
+
+    public GremlinProperty getGremlinProperty(final String table, final String column) throws SQLException {
+        String actualColumnName = getActualColumnName(getGremlinTable(table), column);
+        return getGremlinTable(table).getColumn(actualColumnName);
     }
 }
