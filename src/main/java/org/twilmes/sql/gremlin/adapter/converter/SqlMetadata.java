@@ -26,7 +26,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.util.Gremlin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.twilmes.sql.gremlin.adapter.converter.schema.calcite.GremlinSchema;
@@ -94,7 +93,8 @@ public class SqlMetadata {
         } else if (columnName.endsWith(GremlinTableBase.OUT_ID)) {
             gremlinTableBase = getGremlinTable(column.substring(0, column.length() - GremlinTableBase.OUT_ID.length()));
         } else {
-            throw new SQLException(String.format("Error: Edge labels must end with %s or %s.", GremlinTableBase.IN_ID, GremlinTableBase.OUT_ID));
+            throw new SQLException(String.format("Error: Edge labels must end with %s or %s.", GremlinTableBase.IN_ID,
+                    GremlinTableBase.OUT_ID));
         }
 
         if (gremlinTableBase.getIsVertex()) {
@@ -179,12 +179,14 @@ public class SqlMetadata {
     }
 
     public String getActualColumnName(final GremlinTableBase table, final String column) throws SQLException {
+        final String actualColumnName = getRenamedColumn(column);
         for (final GremlinProperty gremlinProperty : table.getColumns().values()) {
-            if (gremlinProperty.getName().equalsIgnoreCase(column)) {
+            if (gremlinProperty.getName().equalsIgnoreCase(actualColumnName)) {
                 return gremlinProperty.getName();
             }
         }
-        throw new SQLException(String.format("Error: Column %s does not exist in table %s.", column, table.getLabel()));
+        throw new SQLException(
+                String.format("Error: Column %s does not exist in table %s.", actualColumnName, table.getLabel()));
     }
 
     public boolean getTableHasColumn(final GremlinTableBase table, final String column) {
