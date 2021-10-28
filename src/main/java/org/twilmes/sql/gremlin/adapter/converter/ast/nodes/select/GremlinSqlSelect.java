@@ -98,10 +98,8 @@ public abstract class GremlinSqlSelect extends GremlinSqlNode {
         final List<String> columnsRenamed = new ArrayList<>();
         for (final GremlinSqlNode gremlinSqlNode : sqlNodeList) {
             if (gremlinSqlNode instanceof GremlinSqlIdentifier) {
-                System.out.println("=== NEW ID NAME: " + ((GremlinSqlIdentifier) gremlinSqlNode).getName(1));
                 columnsRenamed.add(((GremlinSqlIdentifier) gremlinSqlNode).getName(1));
             } else if (gremlinSqlNode instanceof GremlinSqlBasicCall) {
-                System.out.println("=== NEW BC NAME: " + (((GremlinSqlBasicCall) gremlinSqlNode).getRename()));
                 columnsRenamed.add(((GremlinSqlBasicCall) gremlinSqlNode).getRename());
             } else {
                 throw new SQLException(String.format(

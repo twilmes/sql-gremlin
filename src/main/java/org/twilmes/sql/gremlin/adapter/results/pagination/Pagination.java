@@ -46,7 +46,7 @@ public class Pagination implements Runnable {
     @Override
     public void run() {
         try {
-            System.out.println("TRANSLATED:::  " + GroovyTranslator.of("g").translate(traversal.asAdmin().getBytecode()).toString());
+            LOGGER.info("Graph traversal: " + GroovyTranslator.of("g").translate(traversal.asAdmin().getBytecode()).toString());
             while (traversal.hasNext()) {
                 final List<Object> rows = new ArrayList<>();
                 traversal.next(pageSize).forEach(map -> rows.add(getRowFromMap.execute((Map<String, Object>) map)));

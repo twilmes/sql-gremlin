@@ -49,11 +49,9 @@ public class SqlGremlinQueryResult {
             for (final GremlinTableBase gremlinTableBase : gremlinTableBases) {
                 if (sqlMetadata.getTableHasColumn(gremlinTableBase, column)) {
                     col = sqlMetadata.getGremlinProperty(gremlinTableBase.getLabel(), column);
-                    System.out.println("=== ACTUAL NAME FROM METADATA? " + sqlMetadata.getActualColumnName(gremlinTableBase, column));
                     break;
                 }
             }
-            System.out.println("=== column name or type is null: " + (col == null || col.getType() == null) + " ===");
             columnTypes.add((col == null || col.getType() == null) ? "string" : col.getType());
         }
     }
