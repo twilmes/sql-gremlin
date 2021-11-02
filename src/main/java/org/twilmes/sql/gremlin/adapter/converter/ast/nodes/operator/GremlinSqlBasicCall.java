@@ -75,7 +75,8 @@ public class GremlinSqlBasicCall extends GremlinSqlNode {
             return ((GremlinSqlAsOperator) gremlinSqlOperator).getRename();
         } else if (gremlinSqlOperator instanceof GremlinSqlAggFunction) {
             if (gremlinSqlNodes.size() == 1 && gremlinSqlNodes.get(0) instanceof GremlinSqlIdentifier) {
-                return ((GremlinSqlIdentifier) gremlinSqlNodes.get(0)).getColumn();
+                // returns the formatted column name for aggregations
+                return ((GremlinSqlAggFunction) gremlinSqlOperator).getNewName();
             }
         }
         throw new SQLException("Unable to determine column rename.");
