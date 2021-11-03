@@ -43,19 +43,19 @@ public class GremlinVertexTable extends GremlinTableBase {
         final Map<String, GremlinProperty> columnsWithPKFK =
                 columns.stream().collect(Collectors.toMap(GremlinProperty::getName, t -> t));
 
-        // Uppercase vertex label appended with '_ID' represents an vertex, this is a long type.
-        final GremlinProperty pk = new GremlinProperty(label + ID, "long");
+        // Uppercase vertex label appended with '_ID' represents an vertex, this is a string type.
+        final GremlinProperty pk = new GremlinProperty(label + ID, "string");
         columnsWithPKFK.put(pk.getName(), pk);
 
         // Get in and out foreign keys of edge.
         inEdges.forEach(inEdgeLabel -> {
             // Uppercase edge label appended with 'IN_ID'/'OUT_ID' represents a connected edge, this is a string type.
-            final GremlinProperty inFk = new GremlinProperty(inEdgeLabel + IN_ID, "long");
+            final GremlinProperty inFk = new GremlinProperty(inEdgeLabel + IN_ID, "string");
             columnsWithPKFK.put(inFk.getName(), inFk);
         });
         outEdges.forEach(outEdgeLabel -> {
             // Uppercase edge label appended with 'IN_ID'/'OUT_ID' represents a connected edge, this is a string type.
-            final GremlinProperty inFk = new GremlinProperty(outEdgeLabel + OUT_ID, "long");
+            final GremlinProperty inFk = new GremlinProperty(outEdgeLabel + OUT_ID, "string");
             columnsWithPKFK.put(inFk.getName(), inFk);
         });
         return columnsWithPKFK;

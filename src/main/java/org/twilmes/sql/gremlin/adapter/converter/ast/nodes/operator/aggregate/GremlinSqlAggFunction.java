@@ -24,11 +24,11 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.twilmes.sql.gremlin.adapter.converter.SqlMetadata;
 import org.twilmes.sql.gremlin.adapter.converter.SqlTraversalEngine;
+import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.GremlinSqlNode;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operands.GremlinSqlIdentifier;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.GremlinSqlBasicCall;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.GremlinSqlOperator;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.GremlinSqlTraversalAppender;
-import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.GremlinSqlNode;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.logic.GremlinSqlNumericLiteral;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -118,6 +118,18 @@ public class GremlinSqlAggFunction extends GremlinSqlOperator {
             throw new SQLException(
                     String.format("Error: Aggregate function %s is not supported.", sqlAggFunction.kind.sql));
         }
+    }
+
+    /**
+     * Aggregation columns will be named in the form of AGG(xxx) if no rename is specified in SQL
+     * */
+    public String getNewName() throws SQLException {
+        if (sqlOperands.size() == 1 && sqlOperands.get(0) instanceof GremlinSqlIdentifier) {
+            return String.format("%s(%s)", sqlAggFunction.kind.name(), ((GremlinSqlIdentifier) sqlOperands.get(0)).getColumn());
+        } else if (sqlOperands.size() == 2 && sqlOperands.get(1) instanceof GremlinSqlIdentifier) {
+            return String.format("%s(%s)", sqlAggFunction.kind.name(), ((GremlinSqlIdentifier) sqlOperands.get(1)).getColumn());
+        }
+        throw new SQLException("Error, unable to get rename name in GremlinSqlAggOperator.");
     }
 
     private static class GremlinSqlAggFunctionImplementations {

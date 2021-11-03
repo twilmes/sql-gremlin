@@ -113,7 +113,7 @@ public class SqlConverter {
     }
 
     public String getStringTraversal(final String query) throws SQLException {
-        return GroovyTranslator.of("g").translate(getGraphTraversal(query).asAdmin().getBytecode());
+        return GroovyTranslator.of("g").translate(getGraphTraversal(query).asAdmin().getBytecode()).toString();
     }
 
     @Getter

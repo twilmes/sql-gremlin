@@ -90,25 +90,22 @@ public class GremlinTableBase extends AbstractQueryableTable implements Translat
     }
 
     private Class<?> getType(final String className) {
-        switch (className) {
-            case "string":
-                return String.class;
-            case "integer":
-                return Integer.class;
-            case "double":
-                return Double.class;
-            case "long":
-                return Long.class;
-            case "boolean":
-                return Boolean.class;
-            case "date":
-            case "long_date":
-                return java.sql.Date.class;
-            case "timestamp":
-            case "long_timestamp":
-                return java.sql.Timestamp.class;
-            default:
-                return null;
+        if (className.equalsIgnoreCase("string")) {
+            return String.class;
+        } else if (className.equalsIgnoreCase("integer")) {
+            return Integer.class;
+        } else if (className.equalsIgnoreCase("double")) {
+            return Double.class;
+        } else if (className.equalsIgnoreCase("long")) {
+            return Long.class;
+        } else if (className.equalsIgnoreCase("boolean")) {
+            return Boolean.class;
+        } else if (className.equalsIgnoreCase("date") || className.equalsIgnoreCase("long_date")) {
+            return java.sql.Date.class;
+        } else if (className.equalsIgnoreCase("timestamp") || className.equalsIgnoreCase("long_timestamp")) {
+            return java.sql.Timestamp.class;
+        } else {
+            return null;
         }
     }
 }

@@ -80,7 +80,7 @@ public abstract class GremlinSqlSelect extends GremlinSqlNode {
                                                  SqlGremlinQueryResult sqlGremlinQueryResult) throws SQLException;
 
     public String getStringTraversal() throws SQLException {
-        return GroovyTranslator.of("g").translate(generateTraversal().asAdmin().getBytecode());
+        return GroovyTranslator.of("g").translate(generateTraversal().asAdmin().getBytecode()).toString();
     }
 
     abstract public GraphTraversal<?, ?> generateTraversal() throws SQLException;
