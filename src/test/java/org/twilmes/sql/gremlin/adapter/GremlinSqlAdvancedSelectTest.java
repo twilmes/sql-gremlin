@@ -17,14 +17,27 @@
  * under the License.
  */
 
-package org.twilmes.sql.gremlin.adapter.utilities;
+package org.twilmes.sql.gremlin.adapter;
 
-import org.twilmes.sql.gremlin.adapter.converter.schema.calcite.GremlinSchema;
-import java.util.List;
+import org.junit.jupiter.api.Test;
+import java.sql.SQLException;
 
-public interface MockGraph {
-    GremlinSchema getSchema();
-    List<String> getBasicSelectQueries();
-    List<String> getAggSelectQueries();
-    List<String> getJoinQueries();
+/**
+ * Created by twilmes on 12/7/15.
+ */
+public class GremlinSqlAdvancedSelectTest extends GremlinSqlBaseTest {
+
+    GremlinSqlAdvancedSelectTest() throws SQLException {
+    }
+
+    @Override
+    protected DataSet getDataSet() {
+        return DataSet.SPACE;
+    }
+
+    @Test
+    public void testProject() throws SQLException {
+        runQueryTestResults("select name from person", columns("name"),
+                rows(r("Tom"), r("Patty"), r("Phil"), r("Susan"), r("Juanita"), r("Pavel")));
+    }
 }

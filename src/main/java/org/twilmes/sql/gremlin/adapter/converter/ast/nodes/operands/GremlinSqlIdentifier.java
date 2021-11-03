@@ -30,7 +30,7 @@ import java.sql.SQLException;
  * @author Lyndon Bauto (lyndonb@bitquilltech.com)
  */
 public class GremlinSqlIdentifier extends GremlinSqlNode {
-    SqlIdentifier sqlIdentifier;
+    private final SqlIdentifier sqlIdentifier;
 
     public GremlinSqlIdentifier(final SqlIdentifier sqlIdentifier, final SqlMetadata sqlMetadata) {
         super(sqlIdentifier, sqlMetadata);

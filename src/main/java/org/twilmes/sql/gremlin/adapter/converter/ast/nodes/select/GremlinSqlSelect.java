@@ -28,9 +28,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.twilmes.sql.gremlin.adapter.converter.SqlMetadata;
 import org.twilmes.sql.gremlin.adapter.converter.SqlTraversalEngine;
+import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.GremlinSqlNode;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operands.GremlinSqlIdentifier;
 import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.operator.GremlinSqlBasicCall;
-import org.twilmes.sql.gremlin.adapter.converter.ast.nodes.GremlinSqlNode;
 import org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinTableBase;
 import org.twilmes.sql.gremlin.adapter.results.SqlGremlinQueryResult;
 import java.sql.SQLException;
@@ -80,10 +80,10 @@ public abstract class GremlinSqlSelect extends GremlinSqlNode {
                                                  SqlGremlinQueryResult sqlGremlinQueryResult) throws SQLException;
 
     public String getStringTraversal() throws SQLException {
-        return GroovyTranslator.of("g").translate(generateTraversal().asAdmin().getBytecode()).toString();
+        return GroovyTranslator.of("g").translate(generateTraversal().asAdmin().getBytecode());
     }
 
-    abstract public GraphTraversal<?, ?> generateTraversal() throws SQLException;
+    public abstract GraphTraversal<?, ?> generateTraversal() throws SQLException;
 
     protected void applyColumnRetrieval(final GraphTraversal<?, ?> graphTraversal, final String table,
                                         final List<GremlinSqlNode> sqlNodeList, final StepDirection stepDirection)
@@ -112,11 +112,14 @@ public abstract class GremlinSqlSelect extends GremlinSqlNode {
         sqlMetadata.setColumnOutputList(table, columnsRenamed);
         for (final GremlinSqlNode gremlinSqlNode : sqlNodeList) {
             if (gremlinSqlNode instanceof GremlinSqlIdentifier) {
-                final GraphTraversal<?, ?> subSubGraphTraversal = SqlTraversalEngine.getEmptyTraversal(stepDirection, sqlMetadata);
-                SqlTraversalEngine.applySqlIdentifier((GremlinSqlIdentifier) gremlinSqlNode, sqlMetadata, subSubGraphTraversal);
+                final GraphTraversal<?, ?> subSubGraphTraversal =
+                        SqlTraversalEngine.getEmptyTraversal(stepDirection, sqlMetadata);
+                SqlTraversalEngine
+                        .applySqlIdentifier((GremlinSqlIdentifier) gremlinSqlNode, sqlMetadata, subSubGraphTraversal);
                 SqlTraversalEngine.applyTraversal(subGraphTraversal, subSubGraphTraversal);
             } else if (gremlinSqlNode instanceof GremlinSqlBasicCall) {
-                final GraphTraversal<?, ?> subSubGraphTraversal = SqlTraversalEngine.getEmptyTraversal(stepDirection, sqlMetadata);
+                final GraphTraversal<?, ?> subSubGraphTraversal =
+                        SqlTraversalEngine.getEmptyTraversal(stepDirection, sqlMetadata);
                 ((GremlinSqlBasicCall) gremlinSqlNode).generateTraversal(subSubGraphTraversal);
                 SqlTraversalEngine.applyTraversal(subGraphTraversal, subSubGraphTraversal);
             } else {

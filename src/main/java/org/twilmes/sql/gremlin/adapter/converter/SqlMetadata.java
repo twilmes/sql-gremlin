@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -178,6 +179,15 @@ public class SqlMetadata {
         return columnRenameMap.getOrDefault(column, column);
     }
 
+    public String getRenameFromActual(final String actual) {
+        final Optional<Map.Entry<String, String>>
+                rename = tableRenameMap.entrySet().stream().filter(t -> t.getValue().equals(actual)).findFirst();
+        if (rename.isPresent()) {
+            return rename.get().getKey();
+        }
+        return actual;
+    }
+
     public String getActualColumnName(final GremlinTableBase table, final String column) throws SQLException {
         final String actualColumnName = getRenamedColumn(column);
         for (final GremlinProperty gremlinProperty : table.getColumns().values()) {
@@ -223,7 +233,7 @@ public class SqlMetadata {
     }
 
     public GremlinProperty getGremlinProperty(final String table, final String column) throws SQLException {
-        String actualColumnName = getActualColumnName(getGremlinTable(table), column);
+        final String actualColumnName = getActualColumnName(getGremlinTable(table), column);
         return getGremlinTable(table).getColumn(actualColumnName);
     }
 }

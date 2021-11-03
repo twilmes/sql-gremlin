@@ -21,7 +21,6 @@ package org.twilmes.sql.gremlin.adapter.results.pagination;
 
 import lombok.AllArgsConstructor;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GroovyTranslator;
-import org.apache.tinkerpop.gremlin.process.traversal.Translator;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +45,8 @@ public class Pagination implements Runnable {
     @Override
     public void run() {
         try {
-            LOGGER.info("Graph traversal: " + GroovyTranslator.of("g").translate(traversal.asAdmin().getBytecode()).toString());
+            LOGGER.info("Graph traversal: " +
+                    GroovyTranslator.of("g").translate(traversal.asAdmin().getBytecode()));
             while (traversal.hasNext()) {
                 final List<Object> rows = new ArrayList<>();
                 traversal.next(pageSize).forEach(map -> rows.add(getRowFromMap.execute((Map<String, Object>) map)));

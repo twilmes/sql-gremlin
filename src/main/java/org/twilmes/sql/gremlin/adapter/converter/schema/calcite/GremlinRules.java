@@ -41,9 +41,9 @@ public class GremlinRules {
     };
 
     abstract static class GremlinConverterRule extends ConverterRule {
-        protected final Convention out;
+        private final Convention out;
 
-        public GremlinConverterRule(
+        GremlinConverterRule(
                 final Class<? extends RelNode> clazz,
                 final RelTrait in,
                 final Convention out,
@@ -51,9 +51,13 @@ public class GremlinRules {
             super(clazz, in, out, description);
             this.out = out;
         }
+
+        protected Convention getOut() {
+            return out;
+        }
     }
 
-    private static class GremlinFilterRule extends GremlinConverterRule {
+    private static final class GremlinFilterRule extends GremlinConverterRule {
         private static final GremlinFilterRule INSTANCE = new GremlinFilterRule();
 
         private GremlinFilterRule() {
@@ -62,8 +66,9 @@ public class GremlinRules {
 
         public RelNode convert(final RelNode rel) {
             final LogicalFilter filter = (LogicalFilter) rel;
-            final RelTraitSet traitSet = filter.getTraitSet().replace(out);
-            return new GremlinFilter(rel.getCluster(), traitSet, convert(filter.getInput(), out), filter.getCondition());
+            final RelTraitSet traitSet = filter.getTraitSet().replace(getOut());
+            return new GremlinFilter(rel.getCluster(), traitSet, convert(filter.getInput(), getOut()),
+                    filter.getCondition());
         }
     }
 

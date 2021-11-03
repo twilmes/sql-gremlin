@@ -4,7 +4,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import org.apache.calcite.util.Pair;
-import org.apache.tinkerpop.gremlin.driver.ResultSet;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
@@ -28,7 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class SqlSchemaGrabber {
+public final class SqlSchemaGrabber {
     private static final Logger LOGGER = LoggerFactory.getLogger(SqlSchemaGrabber.class);
     private static final Map<Class<?>, String> TYPE_MAP = new HashMap<>();
     private static final String VERTEX_EDGES_LABEL_QUERY = "g.V().hasLabel('%s').%sE().label().dedup()";
@@ -197,7 +196,7 @@ public class SqlSchemaGrabber {
         public List<String> call() throws Exception {
             final String query = String.format(VERTEX_EDGES_LABEL_QUERY, label, direction);
             LOGGER.debug(String.format("Start %s%n", query));
-            final List<String> labels = direction.equals("in") ? g.V().hasLabel(label).inE().label().dedup().toList() :
+            final List<String> labels = "in".equals(direction) ? g.V().hasLabel(label).inE().label().dedup().toList() :
                     g.V().hasLabel(label).outE().label().dedup().toList();
             LOGGER.debug(String.format("End %s%n", query));
             return labels;
@@ -283,7 +282,7 @@ public class SqlSchemaGrabber {
             final String query = String.format(IN_OUT_VERTEX_QUERY, label);
             LOGGER.debug(String.format("Start %s%n", query));
             final List<Map<String, Object>> result = g.E().hasLabel(label).
-                    project("in","out").
+                    project("in", "out").
                     by(__.inV().label()).
                     by(__.outV().label()).
                     dedup().toList();

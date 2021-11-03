@@ -1,42 +1,14 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-
-package org.twilmes.sql.gremlin.adapter.utilities;
+package org.twilmes.sql.gremlin.adapter.graphs;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
-import org.twilmes.sql.gremlin.adapter.converter.schema.calcite.GremlinSchema;
-import org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinProperty;
-import org.twilmes.sql.gremlin.adapter.converter.schema.gremlin.GremlinVertexTable;
-
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.tinkerpop.gremlin.structure.T.label;
 
-public class SqlFactory {
-    public static Graph createSpaceGraph() {
-        return createSpaceGraph(TinkerGraph.open());
-    }
-
-    public static Graph createSpaceGraph(final Graph graph) {
-
+public class SpaceTestGraph implements TestGraph {
+    @Override
+    public void populate(final Graph graph) {
         // companies
         final Vertex acmeSpaceCo = graph.addVertex(label, "company", "name", "Acme Space");
         final Vertex newFrontiers = graph.addVertex(label, "company", "name", "New Frontiers");
@@ -120,7 +92,5 @@ public class SqlFactory {
             s1Fuel.addEdge("hasReading", s1Reading);
             timestamp += TimeUnit.MINUTES.toMillis(5);
         }
-
-        return graph;
     }
 }

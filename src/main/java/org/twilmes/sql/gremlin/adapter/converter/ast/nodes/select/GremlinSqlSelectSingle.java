@@ -81,7 +81,8 @@ public class GremlinSqlSelectSingle extends GremlinSqlSelect {
         if (columns.size() != 1) {
             throw new SQLException("Error: Single select has multi-table return.");
         }
-        executor.execute(new Pagination(new SimpleDataReader(sqlMetadata.getTables().iterator().next(), columns.get(0)),
+        executor.execute(new Pagination(new SimpleDataReader(
+                sqlMetadata.getRenameFromActual(sqlMetadata.getTables().iterator().next().getLabel()), columns.get(0)),
                 graphTraversal, sqlGremlinQueryResult));
         executor.shutdown();
     }
@@ -181,6 +182,7 @@ public class GremlinSqlSelectSingle extends GremlinSqlSelect {
                             ((GremlinSqlIdentifier) gremlinSqlNode).getColumn());
             if (column.endsWith(GremlinTableBase.IN_ID) || column.endsWith(GremlinTableBase.OUT_ID)) {
                 // TODO: Grouping edges that are not the edge that the vertex are connected - needs to be implemented.
+                throw new SQLException("Error, cannot group by edges.");
             } else {
                 graphTraversal.values(sqlMetadata.getActualColumnName(sqlMetadata.getGremlinTable(table), column));
             }
@@ -200,6 +202,7 @@ public class GremlinSqlSelectSingle extends GremlinSqlSelect {
                             ((GremlinSqlIdentifier) gremlinSqlNode).getColumn());
             if (column.endsWith(GremlinTableBase.IN_ID) || column.endsWith(GremlinTableBase.OUT_ID)) {
                 // TODO: Grouping edges that are not the edge that the vertex are connected - needs to be implemented.
+                throw new SQLException("Error, cannot group by edges.");
             } else {
                 graphTraversal1.values(sqlMetadata.getActualColumnName(sqlMetadata.getGremlinTable(table), column));
             }

@@ -22,13 +22,12 @@ package org.twilmes.sql.gremlin.adapter;
 import lombok.Getter;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 import org.junit.jupiter.api.Assertions;
 import org.twilmes.sql.gremlin.adapter.converter.SqlConverter;
 import org.twilmes.sql.gremlin.adapter.converter.schema.SqlSchemaGrabber;
 import org.twilmes.sql.gremlin.adapter.converter.schema.calcite.GremlinSchema;
+import org.twilmes.sql.gremlin.adapter.graphs.TestGraphFactory;
 import org.twilmes.sql.gremlin.adapter.results.SqlGremlinQueryResult;
-import org.twilmes.sql.gremlin.adapter.utilities.SqlFactory;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,36 +36,26 @@ import java.util.List;
 /**
  * Created by twilmes on 12/4/15.
  */
-public class GremlinSqlBaseTest {
-    protected Graph graph;
-    protected GraphTraversalSource g;
-    private SqlConverter converter;
+public abstract class GremlinSqlBaseTest {
+    private final Graph graph;
+    private final GraphTraversalSource g;
+    private final SqlConverter converter;
 
-    public void setUpBefore(final Data data) throws SQLException {
-        switch (data) {
-            case MODERN:
-                graph = TinkerFactory.createModern();
-                break;
-            case CLASSIC:
-                graph = TinkerFactory.createClassic();
-                break;
-            case CREW:
-                graph = TinkerFactory.createTheCrew();
-                break;
-            case SPACE:
-                graph = SqlFactory.createSpaceGraph();
-                break;
-            default:
-                throw new UnsupportedOperationException("Unsupported graph " + data);
-        }
+    GremlinSqlBaseTest() throws SQLException {
+        graph = TestGraphFactory.createGraph(getDataSet());
         g = graph.traversal();
         final GremlinSchema gremlinSchema = SqlSchemaGrabber.getSchema(g, SqlSchemaGrabber.ScanType.All);
         converter = new SqlConverter(gremlinSchema, g);
-
     }
 
-    public SqlGremlinTestResult executeQuery(final String sql) throws SQLException {
-        return new SqlGremlinTestResult(converter.executeQuery(sql));
+    protected abstract DataSet getDataSet();
+
+    protected void runQueryTestResults(final String query, final List<String> columnNames,
+                                       final List<List<Object>> rows)
+            throws SQLException {
+        final SqlGremlinTestResult result = new SqlGremlinTestResult(converter.executeQuery(query));
+        assertRows(result.getRows(), rows);
+        assertColumns(result.getColumns(), columnNames);
     }
 
     public List<List<Object>> rows(final List<Object>... rows) {
@@ -98,16 +87,13 @@ public class GremlinSqlBaseTest {
         }
     }
 
-    protected enum Data {
-        MODERN,
-        CLASSIC,
-        CREW,
-        NORTHWIND,
-        SPACE
+    public enum DataSet {
+        SPACE,
+        DATA_TYPES
     }
 
     @Getter
-    class SqlGremlinTestResult {
+    static class SqlGremlinTestResult {
         private final List<List<Object>> rows = new ArrayList<>();
         private final List<String> columns;
 
