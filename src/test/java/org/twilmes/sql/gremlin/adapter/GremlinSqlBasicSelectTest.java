@@ -76,15 +76,11 @@ public class GremlinSqlBasicSelectTest extends GremlinSqlBaseTest {
     }
 
     String getAsOperatorQuery(final String column, final String asColumn, final String table) {
-        final String query = String.format("SELECT %s AS %s FROM %s", column, asColumn, table);
-        System.out.println("Query1: " + query);
-        return query;
+        return String.format("SELECT %s AS %s FROM %s", column, asColumn, table);
     }
 
     String getAsOperatorQuery(final String column, final String asColumn, final String table, final String asTable) {
-        final String query = String.format("SELECT %s.%s AS %s FROM %s %s", asTable, column, asColumn, table, asTable);
-        System.out.println("Query2: " + query);
-        return query;
+        return String.format("SELECT %s.%s AS %s FROM %s %s", asTable, column, asColumn, table, asTable);
     }
 
     @Test
