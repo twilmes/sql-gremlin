@@ -128,6 +128,8 @@ public class GremlinSqlAggFunction extends GremlinSqlOperator {
             return String.format("%s(%s)", sqlAggFunction.kind.name(), ((GremlinSqlIdentifier) sqlOperands.get(0)).getColumn());
         } else if (sqlOperands.size() == 2 && sqlOperands.get(1) instanceof GremlinSqlIdentifier) {
             return String.format("%s(%s)", sqlAggFunction.kind.name(), ((GremlinSqlIdentifier) sqlOperands.get(1)).getColumn());
+        } else if (sqlOperands.size() == 1 && sqlOperands.get(0) instanceof GremlinSqlNumericLiteral) {
+            return String.format("%s(%s)", sqlAggFunction.kind.name(), ((GremlinSqlNumericLiteral) sqlOperands.get(0)).getValue().toString());
         }
         throw new SQLException("Error, unable to get rename name in GremlinSqlAggOperator.");
     }

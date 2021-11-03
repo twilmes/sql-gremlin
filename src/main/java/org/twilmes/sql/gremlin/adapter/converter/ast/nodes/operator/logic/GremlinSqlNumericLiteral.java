@@ -40,6 +40,10 @@ public class GremlinSqlNumericLiteral extends GremlinSqlNode {
     }
 
     public void appendTraversal(final GraphTraversal graphTraversal) throws SQLException {
-        graphTraversal.constant(sqlNumericLiteral.getValue());
+        graphTraversal.constant(getValue());
+    }
+
+    public Object getValue() throws SQLException {
+        return sqlNumericLiteral.getValue();
     }
 }
