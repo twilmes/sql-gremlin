@@ -28,6 +28,8 @@ import org.apache.calcite.rex.RexNode;
 /**
  * @author Lyndon Bauto (lyndonb@bitquilltech.com)
  * @author Adapted from implementation by twilmes (https://github.com/twilmes/sql-gremlin)
+ *
+ *
  */
 public class GremlinFilter extends Filter implements GremlinRel {
     public GremlinFilter(

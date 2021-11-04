@@ -237,6 +237,7 @@ public class GremlinSqlSelectMulti extends GremlinSqlSelect {
                     byUnion.add(__.id());
                 } else if (column.endsWith(GremlinTableBase.ID)) {
                     // TODO: Grouping edges that are not the edge that the vertex are connected - needs to be implemented.
+                    throw new SQLException("Error, cannot group by edges.");
                 } else {
                     if (inVRename.equals(table)) {
                         byUnion.add(__.inV().hasLabel(table)
@@ -271,6 +272,7 @@ public class GremlinSqlSelectMulti extends GremlinSqlSelect {
             final String column = gremlinSqlIdentifier.getColumn();
             if (column.endsWith(GremlinTableBase.IN_ID) || column.endsWith(GremlinTableBase.OUT_ID)) {
                 // TODO: Grouping edges that are not the edge that the vertex are connected - needs to be implemented.
+                throw new SQLException("Error, cannot group by edges.");
             } else {
                 if (sqlMetadata.getTableHasColumn(inVTable, column)) {
                     graphTraversal.by(__.unfold().inV().hasLabel(inVTable.getLabel())

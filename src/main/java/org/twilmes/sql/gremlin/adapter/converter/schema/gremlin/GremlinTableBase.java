@@ -42,9 +42,9 @@ public class GremlinTableBase extends AbstractQueryableTable implements Translat
     private final String label;
     private final Boolean isVertex;
     private final Map<String, GremlinProperty> columns;
-    public static String ID = "_ID";
-    public static String IN_ID = "_IN" + ID;
-    public static String OUT_ID = "_OUT" + ID;
+    public static final String ID = "_ID";
+    public static final String IN_ID = "_IN" + ID;
+    public static final String OUT_ID = "_OUT" + ID;
 
     public GremlinTableBase(final String label, final Boolean isVertex,
                             final Map<String, GremlinProperty> columns) {
@@ -90,19 +90,25 @@ public class GremlinTableBase extends AbstractQueryableTable implements Translat
     }
 
     private Class<?> getType(final String className) {
-        if (className.equalsIgnoreCase("string")) {
+        if ("string".equalsIgnoreCase(className)) {
             return String.class;
-        } else if (className.equalsIgnoreCase("integer")) {
+        } else if ("integer".equalsIgnoreCase(className)) {
             return Integer.class;
-        } else if (className.equalsIgnoreCase("double")) {
+        } else if ("float".equalsIgnoreCase(className)) {
+            return Float.class;
+        } else if ("byte".equalsIgnoreCase(className)) {
+            return Byte.class;
+        } else if ("short".equalsIgnoreCase(className)) {
+            return Short.class;
+        } else if ("double".equalsIgnoreCase(className)) {
             return Double.class;
-        } else if (className.equalsIgnoreCase("long")) {
+        } else if ("long".equalsIgnoreCase(className)) {
             return Long.class;
-        } else if (className.equalsIgnoreCase("boolean")) {
+        } else if ("boolean".equalsIgnoreCase(className)) {
             return Boolean.class;
-        } else if (className.equalsIgnoreCase("date") || className.equalsIgnoreCase("long_date")) {
+        } else if ("date".equalsIgnoreCase(className) || "long_date".equalsIgnoreCase(className)) {
             return java.sql.Date.class;
-        } else if (className.equalsIgnoreCase("timestamp") || className.equalsIgnoreCase("long_timestamp")) {
+        } else if ("timestamp".equalsIgnoreCase(className) || "long_timestamp".equalsIgnoreCase(className)) {
             return java.sql.Timestamp.class;
         } else {
             return null;

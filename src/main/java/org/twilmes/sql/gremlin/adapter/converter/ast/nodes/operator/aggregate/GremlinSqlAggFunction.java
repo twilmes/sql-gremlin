@@ -49,43 +49,10 @@ public class GremlinSqlAggFunction extends GremlinSqlOperator {
                 put(SqlKind.SUM, GremlinSqlAggFunctionImplementations.SUM);
                 put(SqlKind.MIN, GremlinSqlAggFunctionImplementations.MIN);
                 put(SqlKind.MAX, GremlinSqlAggFunctionImplementations.MAX);
-
-        /*
-        put(SqlKind.LEAD, null);
-        put(SqlKind.LAG, null);
-        put(SqlKind.FIRST_VALUE, null);
-        put(SqlKind.LAST_VALUE, null);
-        put(SqlKind.COVAR_POP, null);
-        put(SqlKind.COVAR_SAMP, null);
-        put(SqlKind.REGR_COUNT, null);
-        put(SqlKind.REGR_SXX, null);
-        put(SqlKind.REGR_SYY, null);
-        put(SqlKind.STDDEV_POP, null);
-        put(SqlKind.STDDEV_SAMP, null);
-        put(SqlKind.VAR_POP, null);
-        put(SqlKind.VAR_SAMP, null);
-        put(SqlKind.NTILE, null);
-        put(SqlKind.COLLECT, null);
-        put(SqlKind.FUSION, null);
-        put(SqlKind.SINGLE_VALUE, null);
-        put(SqlKind.ROW_NUMBER, null);
-        put(SqlKind.RANK, null);
-        put(SqlKind.PERCENT_RANK, null);
-        put(SqlKind.DENSE_RANK, null);
-        put(SqlKind.CUME_DIST, null);
-        put(SqlKind.JSON_ARRAYAGG, null);
-        put(SqlKind.JSON_OBJECTAGG, null);
-        put(SqlKind.BIT_AND, null);
-        put(SqlKind.BIT_OR, null);
-        put(SqlKind.BIT_XOR, null);
-        put(SqlKind.LISTAGG, null);
-        put(SqlKind.INTERSECTION, null);
-        put(SqlKind.ANY_VALUE, null);
-         */
             }};
-    SqlAggFunction sqlAggFunction;
-    SqlMetadata sqlMetadata;
-    List<GremlinSqlNode> sqlOperands;
+    private final SqlAggFunction sqlAggFunction;
+    private final SqlMetadata sqlMetadata;
+    private final List<GremlinSqlNode> sqlOperands;
 
 
     public GremlinSqlAggFunction(final SqlAggFunction sqlOperator,
@@ -101,7 +68,8 @@ public class GremlinSqlAggFunction extends GremlinSqlOperator {
     protected void appendTraversal(final GraphTraversal<?, ?> graphTraversal) throws SQLException {
         if (sqlOperands.get(0) instanceof GremlinSqlBasicCall) {
             ((GremlinSqlBasicCall) sqlOperands.get(0)).generateTraversal(graphTraversal);
-        } else if (!(sqlOperands.get(0) instanceof GremlinSqlIdentifier) && !(sqlOperands.get(0) instanceof GremlinSqlNumericLiteral)) {
+        } else if (!(sqlOperands.get(0) instanceof GremlinSqlIdentifier) &&
+                !(sqlOperands.get(0) instanceof GremlinSqlNumericLiteral)) {
             throw new SQLException(
                     "Error: expected operand to be GremlinSqlBasicCall or GremlinSqlIdentifier in GremlinSqlOperator.");
         }
@@ -122,34 +90,39 @@ public class GremlinSqlAggFunction extends GremlinSqlOperator {
 
     /**
      * Aggregation columns will be named in the form of AGG(xxx) if no rename is specified in SQL
-     * */
+     */
     public String getNewName() throws SQLException {
         if (sqlOperands.size() == 1 && sqlOperands.get(0) instanceof GremlinSqlIdentifier) {
-            return String.format("%s(%s)", sqlAggFunction.kind.name(), ((GremlinSqlIdentifier) sqlOperands.get(0)).getColumn());
+            return String.format("%s(%s)", sqlAggFunction.kind.name(),
+                    ((GremlinSqlIdentifier) sqlOperands.get(0)).getColumn());
         } else if (sqlOperands.size() == 2 && sqlOperands.get(1) instanceof GremlinSqlIdentifier) {
-            return String.format("%s(%s)", sqlAggFunction.kind.name(), ((GremlinSqlIdentifier) sqlOperands.get(1)).getColumn());
+            return String.format("%s(%s)", sqlAggFunction.kind.name(),
+                    ((GremlinSqlIdentifier) sqlOperands.get(1)).getColumn());
+        } else if (sqlOperands.size() == 1 && sqlOperands.get(0) instanceof GremlinSqlNumericLiteral) {
+            return String.format("%s(%s)", sqlAggFunction.kind.name(),
+                    ((GremlinSqlNumericLiteral) sqlOperands.get(0)).getValue().toString());
         }
         throw new SQLException("Error, unable to get rename name in GremlinSqlAggOperator.");
     }
 
     private static class GremlinSqlAggFunctionImplementations {
-        public static GremlinSqlTraversalAppender AVG =
+        public static final GremlinSqlTraversalAppender AVG =
                 (GraphTraversal<?, ?> graphTraversal, List<GremlinSqlNode> operands) -> {
                     graphTraversal.mean();
                 };
-        public static GremlinSqlTraversalAppender COUNT =
+        public static final GremlinSqlTraversalAppender COUNT =
                 (GraphTraversal<?, ?> graphTraversal, List<GremlinSqlNode> operands) -> {
                     graphTraversal.count();
                 };
-        public static GremlinSqlTraversalAppender SUM =
+        public static final GremlinSqlTraversalAppender SUM =
                 (GraphTraversal<?, ?> graphTraversal, List<GremlinSqlNode> operands) -> {
                     graphTraversal.sum();
                 };
-        public static GremlinSqlTraversalAppender MIN =
+        public static final GremlinSqlTraversalAppender MIN =
                 (GraphTraversal<?, ?> graphTraversal, List<GremlinSqlNode> operands) -> {
                     graphTraversal.min();
                 };
-        public static GremlinSqlTraversalAppender MAX =
+        public static final GremlinSqlTraversalAppender MAX =
                 (GraphTraversal<?, ?> graphTraversal, List<GremlinSqlNode> operands) -> {
                     graphTraversal.max();
                 };

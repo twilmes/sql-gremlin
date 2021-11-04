@@ -33,7 +33,7 @@ import org.apache.calcite.rel.convert.ConverterRule;
  * Rule to convert a relational expression from
  * {@link GremlinRel#CONVENTION} to {@link org.apache.calcite.adapter.enumerable.EnumerableConvention}.
  */
-public class GremlinToEnumerableConverterRule extends ConverterRule {
+public final class GremlinToEnumerableConverterRule extends ConverterRule {
     public static final ConverterRule INSTANCE =
             new GremlinToEnumerableConverterRule();
 

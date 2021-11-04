@@ -31,8 +31,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 @Getter
 public class SqlGremlinQueryResult {
-    public static String EMPTY_MESSAGE = "No more results.";
-    public static String NULL_VALUE = "$%#NULL#%$";
+    public static final String EMPTY_MESSAGE = "No more results.";
+    public static final String NULL_VALUE = "$%#NULL#%$";
     private final List<String> columns;
     private final List<String> columnTypes = new ArrayList<>();
     private final Object assertEmptyLock = new Object();

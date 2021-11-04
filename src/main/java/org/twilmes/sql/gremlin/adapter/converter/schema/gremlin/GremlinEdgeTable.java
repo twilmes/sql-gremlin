@@ -19,8 +19,8 @@
 
 package org.twilmes.sql.gremlin.adapter.converter.schema.gremlin;
 
-import org.apache.calcite.util.Pair;
 import lombok.Getter;
+import org.apache.calcite.util.Pair;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -33,7 +33,8 @@ import java.util.stream.Collectors;
 public class GremlinEdgeTable extends GremlinTableBase {
     private final List<Pair<String, String>> inOutVertexPairs;
 
-    public GremlinEdgeTable(final String label, final List<GremlinProperty> columns, final List<Pair<String, String>> inOutVertexPairs) {
+    public GremlinEdgeTable(final String label, final List<GremlinProperty> columns,
+                            final List<Pair<String, String>> inOutVertexPairs) {
         super(label, false, convert(label, columns, inOutVertexPairs));
         this.inOutVertexPairs = inOutVertexPairs;
     }
@@ -70,24 +71,22 @@ public class GremlinEdgeTable extends GremlinTableBase {
     }
 
     public boolean hasInVertex(final String inVertexLabel) {
-        String label = inVertexLabel.replace(IN_ID, "");
-        for (Pair<String, String> pair: inOutVertexPairs) {
+        final String label = inVertexLabel.replace(IN_ID, "");
+        for (final Pair<String, String> pair : inOutVertexPairs) {
             if (pair.getKey().equalsIgnoreCase(label)) {
                 return true;
             }
         }
         return false;
-        // return inOutVertexPairs.stream().anyMatch(e -> e.getKey().equalsIgnoreCase(inVertexLabel));
     }
 
     public boolean hasOutVertex(final String outVertexLabel) {
-        String label = outVertexLabel.replace(IN_ID, "");
-        for (Pair<String, String> pair: inOutVertexPairs) {
+        final String label = outVertexLabel.replace(IN_ID, "");
+        for (final Pair<String, String> pair : inOutVertexPairs) {
             if (pair.getValue().equalsIgnoreCase(label)) {
                 return true;
             }
         }
         return false;
-        // return inOutVertexPairs.stream().anyMatch(e -> e.getValue().equalsIgnoreCase(outVertexLabel));
     }
 }

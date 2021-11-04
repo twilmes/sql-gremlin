@@ -19,7 +19,6 @@
 
 package org.twilmes.sql.gremlin.adapter.converter;
 
-import org.apache.tinkerpop.gremlin.groovy.jsr223.GroovyTranslator;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
@@ -108,7 +107,7 @@ public class SqlTraversalEngine {
 
     public static GraphTraversal<?, ?> applyColumnRenames(final List<String> columnsRenamed) throws SQLException {
         final String firstColumn = columnsRenamed.remove(0);
-        final String[] remaining = columnsRenamed.toArray(new String[]{});
+        final String[] remaining = columnsRenamed.toArray(new String[] {});
         return __.project(firstColumn, remaining);
     }
 
@@ -123,7 +122,8 @@ public class SqlTraversalEngine {
             if (sqlMetadata.getIsAggregate()) {
                 graphTraversal.values(columnName);
             } else {
-                graphTraversal.choose(__.has(columnName), __.values(columnName), __.constant(SqlGremlinQueryResult.NULL_VALUE));
+                graphTraversal.choose(__.has(columnName), __.values(columnName),
+                        __.constant(SqlGremlinQueryResult.NULL_VALUE));
             }
         } else {
             // It's this vertex/edge.
@@ -133,16 +133,20 @@ public class SqlTraversalEngine {
                 if (columnName.endsWith(IN_ID)) {
                     // Vertices can have many connected, edges (thus we need to fold). Edges can only connect to 1 vertex.
                     if (gremlinTableBase.getIsVertex()) {
-                        graphTraversal.coalesce( __.inE().hasLabel(columnName.replace(IN_ID, "")).id().fold(), __.constant(new ArrayList<>()));
+                        graphTraversal.coalesce(__.inE().hasLabel(columnName.replace(IN_ID, "")).id().fold(),
+                                __.constant(new ArrayList<>()));
                     } else {
-                        graphTraversal.coalesce( __.inV().hasLabel(columnName.replace(IN_ID, "")).id(), __.constant(new ArrayList<>()));
+                        graphTraversal.coalesce(__.inV().hasLabel(columnName.replace(IN_ID, "")).id(),
+                                __.constant(new ArrayList<>()));
                     }
                 } else if (column.endsWith(OUT_ID)) {
                     // Vertices can have many connected, edges (thus we need to fold). Edges can only connect to 1 vertex.
                     if (gremlinTableBase.getIsVertex()) {
-                        graphTraversal.coalesce( __.outE().hasLabel(columnName.replace(OUT_ID, "")).id().fold(), __.constant(new ArrayList<>()));
+                        graphTraversal.coalesce(__.outE().hasLabel(columnName.replace(OUT_ID, "")).id().fold(),
+                                __.constant(new ArrayList<>()));
                     } else {
-                        graphTraversal.coalesce( __.outV().hasLabel(columnName.replace(IN_ID, "")).id(), __.constant(new ArrayList<>()));
+                        graphTraversal.coalesce(__.outV().hasLabel(columnName.replace(IN_ID, "")).id(),
+                                __.constant(new ArrayList<>()));
                     }
                 } else {
                     graphTraversal.constant(new ArrayList<>());

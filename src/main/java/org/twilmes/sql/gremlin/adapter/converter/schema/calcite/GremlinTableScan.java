@@ -36,6 +36,9 @@ import java.util.List;
  * Modified by lyndonb-bq on 05/17/21.
  */
 public class GremlinTableScan extends TableScan implements GremlinRel {
+    /**
+     * Calling convention for relational operations that occur in Gremlin.
+     */
     private final int[] fields;
 
     public GremlinTableScan(final RelOptCluster cluster, final RelTraitSet traitSet,
