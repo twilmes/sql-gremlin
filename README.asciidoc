@@ -4,195 +4,28 @@ The SQL-Gremlin compiler turns your SQL queries into Gremlin traversals and runs
 
 Motivation
 ----------
-Many projects face the inevitable reporting/business intelligence requirement. This has motivated the creation of the SQL-Gremlin compiler.  A JDBC driver building upon the excellent http://calcite.apache.org/docs/avatica_overview.html[Apache Calcite Avatica] framework will be released shortly.  This will enable graph connectivity with a large number of off the shelf reporting solutions that support ANSI SQL via JDBC.
+Many projects face the inevitable reporting/business intelligence requirement. This has motivated the creation of the SQL-Gremlin compiler.
 
-Quick Start
------------
-
-Prerequisites
-~~~~~~~~~~~~~
-The classics:
-
-* JDK 1.8
-* Maven
-* http://tinkerpop.incubator.apache.org/[TinkerPop 3.1.0]
-
-You can get started with SQL-Gremlin by building and installing it in your local Maven repo.  After it's installed, it'll be available for Gremlin shell installation as a Gremlin plugin.
-
-[source]
-----
-mvn clean install -DskipTests
-----
-
-Gremlin Shell Plugin
-~~~~~~~~~~~~~~~~~~~~
-If the Gremlin shell is not installed already, you can download it from http://tinkerpop.incubator.apache.org/.  After it is installed, start your Gremlin shell and install the plugin with the following steps.  Note that you will need to restart the shell after plugin installation is complete.
-
-[source]
-----
-         \,,,/
-         (o o)
------oOOo-(3)-oOOo-----
-plugin activated: tinkerpop.server
-plugin activated: tinkerpop.utilities
-plugin activated: tinkerpop.neo4j
-plugin activated: tinkerpop.tinkergraph
-gremlin> :install org.twilmes sql-gremlin 0.1.0
-==>Loaded: [org.twilmes, sql-gremlin, 0.1.0] - restart the console to use [twilmes.sql]
-gremlin>:exit
-----
-
-After restarting the shell, you can activate the plugin and connect it to a test graph.  Be sure to update the `configFn` to match your SQL-Gremlin schema config file location.
-
-[source]
-----
-gremlin> :plugin use sql.gremlin
-==>sql.gremlin activated
-gremlin> graph = SqlFactory.createSpaceGraph()
-==>tinkergraph[vertices:37 edges:22]
-gremlin> configFn = "/Users/you/sql-gremlin/schema.json"
-==>/Users/YOU/sql-gremlin/schema.json
-gremlin> :remote connect sql.gremlin graph configFn
-==>SQL[graphtraversalsource[tinkergraph[vertices:37 edges:22], standard]]
-----
-
-Here's a quick example where we load the test space graph into Neo4j.  Note, you will need to install the http://tinkerpop.apache.org/docs/3.1.0-incubating/#neo4j-gremlin[Neo4j Gremlin plugin] for this to work.
-
-[source]
-----
-gremlin> graph = Neo4jGraph.open('/tmp/neo4j')
-==>neo4jgraph[EmbeddedGraphDatabase [/tmp/neo4j]]
-gremlin> SqlFactory.createSpaceGraph(graph)
-==>neo4jgraph[EmbeddedGraphDatabase [/tmp/neo4j]]
-gremlin> g = graph.traversal()
-==>graphtraversalsource[neo4jgraph[EmbeddedGraphDatabase [/tmp/neo4j]], standard]
-gremlin> g.V().hasLabel("person").valueMap()
-==>[name:[Tom], age:[35]]
-==>[name:[Patty], age:[29]]
-==>[name:[Phil], age:[30]]
-==>[name:[Susan], age:[45]]
-==>[name:[Juanita], age:[50]]
-==>[name:[Pavel], age:[30]]
-----
-
-
-Now you're ready to run some queries.
-
-Examples
---------
-The following examples use the small test data set included with this project.  The SQL schema mapping for this data set can be found in the SQL-Gremlin root directory.
-
-Let's start with some basic selects against a single table.  Vertices and edges are mapped to tables.  Note here that the foreign key columns from person are `null`.  This is because the foreign key id's are only filled in if the foreign key table is part of the query. This was done to avoid the extra retrievals that would be needed to retrieve these ids but is something that can be reevaluated for future SQL-Gremlin versions.
-
-[source]
-----
-gremlin> :> select * from person
-==>[null, null, 26, null, Tom, 35]
-==>[null, null, 29, null, Patty, 29]
-==>[null, null, 32, null, Phil, 30]
-==>[null, null, 35, null, Susan, 45]
-==>[null, null, 38, null, Juanita, 50]
-==>[null, null, 41, null, Pavel, 30]
-----
-
-You can also add filters, ordering, and select only the columns you're interested in.
-
-[source]
-----
-gremlin> :> select name, age from person where age >= 30 order by age desc
-==>[Juanita, 50]
-==>[Susan, 45]
-==>[Tom, 35]
-==>[Phil, 30]
-==>[Pavel, 30]
-----
-
-Tables can be joined using their primary key/foreign key columns.  Note that at this point, joins by anything other than primary/foreign key are not supported.  In other words, if there is not an edge between the vertices being joined in the background, you can't do it.
-
-[source]
-----
-gremlin> :> select c.name, p.name from company as c inner join person as p on c.company_id = p.company_id
-==>[Acme Space, Tom]
-==>[Acme Space, Patty]
-==>[New Frontiers, Phil]
-==>[Tomorrow Unlimited, Susan]
-==>[Space Truckers, Juanita]
-==>[Space Truckers, Pavel]
-----
-
-Grouping can be applied on both single and joined tables.
-
-[source]
-----
-gremlin> :> select c.name, s.model, count(*) from company as c inner join person as p on p.company_id = c.company_id inner join spaceship as s on s.spaceship_id = p.spaceship_id group by c.name, s.model
-==>[Tomorrow Unlimited, delta 2, 1]
-==>[New Frontiers, delta 1, 1]
-==>[Acme Space, delta 1, 2]
-==>[Space Truckers, delta 3, 2]
-----
-
-Finally, the canonical 24th century social networking query.  The "friend-of-a-friend's spaceship":
-[source]
-----
-gremlin> :> select p1.name, p2.name, p3.name, s.name from person as p1 inner join person as p2 on p1.person_id = p2.person_id inner join person as p3 on p3.person_id = p2.person_id inner join spaceship as s on s.spaceship_id = p3.spaceship_id
-==>[Tom, Patty, Juanita, Ship 4]
-==>[Phil, Susan, Pavel, Ship 4]
-----
-
-Both vertices and edges can be mapped to SQL tables.  You can think of edge-based tables as bridge or association tables.  They can be used to mimic a many-to-many relationship but also to expose edge properties in a one-to-many scenario (think an employee hired date on a 'hired' edge between a company and an employee).
-
-You can refer to the unit tests for more query examples.  Detailed coverage of Calcite's SQL support can be found http://calcite.apache.org/docs/reference.html[here].  Note that at this time, SQL-Gremlin does not support all of these constructs but will be moving towards parity.
-
-SQL Schema Definition
----------------------
-A mapping file must be provided for SQL-Gremlin.  Here is snippet from the included space data example dataset.
-
-[source]
-----
-{
-  "tables": [
-    {
-      "name": "company",
-      "columns": [
-        {"name": "name", "type": "string"}
-      ]
-    },
-    {
-      "name": "person",
-      "columns": [
-        {"name": "name", "type": "string"},
-        {"name": "age", "type": "integer"}
-      ]
+Usage
+-----
+To use this, build the module as a shadowJar (run package). From there you must collect the schema of your graph before you can enter sql statments.
+Basic usage is shown below:
+```
+    void executeSqlStatement(final String sql, final GraphTraversalSource g) throws SQLException {
+        final GremlinSchema gremlinSchema = SqlSchemaGrabber.getSchema(g, SqlSchemaGrabber.ScanType.All);
+        final SqlConverter converter = new SqlConverter(gremlinSchema, g);
+        final SqlGremlinQueryResult sqlGremlinQueryResult = converter.executeSql(sql);
     }
-    ],
-    "relationships": [
-        {"outTable": "person", "inTable": "company", "edgeLabel": "worksFor"},
-      ]
-}
-----
-
-Vertices and edges are exposed as tables.  For this initial release, the table name must match the vertex/edge label.  Column names can be different than the vertex property names.  This is accomplished by adding a `propertyName` property to the column configuration.
-
-The `relationships` portion of the configuration is used to add the foreign keys to the appropriate tables.  The out and in table values must match your table names exactly and are case sensitive.  For further mapping examples to inspire your own mapping file, please refer to the full schema.json.  When reporting any issues, if possible, please include the relevant portion of your data set's mapping file to aid in debugging.
-
-Limitations
------------
-SQL-Gremlin currently has the following known limitations.
-
-* Vertex labels are required.
-* Foreign keys are only populated in result sets if the foreign key vertex is present in the query.  Otherwise you'll just see a null.
-* Left outer joins, Subqueries, window functions, case statements, and unions are not supported.
-* SQL query is not fully pushed down into Gremlin. For example, group bys are performed by Calcite.  For an OLTP type query, or one that doesn't involve a huge result set, this probably isn't an issue.  But it does have implications if you are having to materialize a huge result set and doing grouping after the fact (think an OLAP type grouping run against the SparkGraphComputer).
-* Multi and meta properties are not supported at this time.
+```
+The project is currently under rapid development and interfaces may change quickly with no notice.
 
 Roadmap
 -------
 Current priorities include:
 
-* JDBC driver
-* Further SQL support (left and full outer joins, unions, sub-queries, window functions, etc.)
-* Increased pushdown of processing into Gremlin (group by, order, etc.)
-* Performance tuning & general code refinement
+* Further SQL support
+* Increase testing
+* Enhancements to schema collection
 
 Please refer to https://github.com/twilmes/sql-gremlin/issues for the most up to date list of outstanding issues.
 
