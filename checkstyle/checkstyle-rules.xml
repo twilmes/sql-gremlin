@@ -1,0 +1,150 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+        "-//Puppy Crawl//DTD Check Configuration 1.2//EN"
+        "http://www.puppycrawl.com/dtds/configuration_1_2.dtd">
+
+<!--
+    Recommended check style configuration for Neptune packages.
+
+    This checkstyle configuration is based on Google Java style guide
+    with additional customizations and best practices.
+
+    - Google Java Style
+      http://google.github.io/styleguide/javaguide.html
+
+    The rules enforced are very minimal and not very annoying. Please
+    modify this if you think a particular rule is not adding much value
+    instead of disabling checkstyle.
+
+    Checkstyle is very configurable. Be sure to read the documentation at
+    http://checkstyle.sf.net (or in your downloaded distribution).
+-->
+<module name="Checker">
+
+    <property name="charset" value="UTF-8"/>
+
+    <!-- Checks whether files end with a new line.                        -->
+    <!-- See http://checkstyle.sf.net/config_misc.html#NewlineAtEndOfFile -->
+    <module name="NewlineAtEndOfFile"/>
+
+    <!-- Checks for Size Violations.                    -->
+    <!-- See http://checkstyle.sf.net/config_sizes.html -->
+    <module name="FileLength"/>
+
+    <!-- See http://checkstyle.sf.net/config_whitespace.html -->
+    <module name="FileTabCharacter"/>
+
+    <module name="RegexpSingleline">
+        <property name="format" value="\s+$"/>
+        <property name="message" value="Line has trailing spaces."/>
+    </module>
+
+    <!-- Supressions file -->
+    <module name="SuppressionFilter">
+        <property name="file" value="./checkstyle/suppressions.xml"/>
+    </module>
+
+    <module name="SuppressWarningsFilter"/>
+
+    <module name="TreeWalker">
+
+        <!-- Suppress checkstyle using @SuppressWarnings -->
+        <module name="SuppressWarningsHolder"/>
+
+        <!-- Suppress checkstyle using // CHECKSTYLE.OFF -->
+        <module name="SuppressionCommentFilter">
+            <property name="offCommentFormat" value="CHECKSTYLE.OFF\: ([\w\|]+)"/>
+            <property name="onCommentFormat" value="CHECKSTYLE.ON\: ([\w\|]+)"/>
+            <property name="checkFormat" value="$1"/>
+        </module>
+
+        <!-- To configure the check so that it matches default IntelliJ IDEA formatter configuration (tested on v14):
+
+            - group of static imports is on the bottom
+            - groups of non-static imports: all imports except of "javax" and "java", then "javax" and "java"
+            - imports will be sorted in the groups
+            - groups are separated by, at least, one blank line
+
+            Note: "separated" option is disabled because IDEA default has blank line between "java" and static imports,
+                   and no blank line between "javax" and "java"
+        -->
+        <module name="CustomImportOrder">
+            <property name="customImportOrderRules"
+                      value="THIRD_PARTY_PACKAGE###SPECIAL_IMPORTS###STANDARD_JAVA_PACKAGE###STATIC"/>
+            <property name="specialImportsRegExp" value="^javax\."/>
+            <property name="standardPackageRegExp" value="^java\."/>
+            <property name="sortImportsInGroupAlphabetically" value="true"/>
+            <property name="separateLineBetweenGroups" value="false"/>
+        </module>
+
+
+        <!-- Checks for Size Violations.                    -->
+        <!-- See http://checkstyle.sf.net/config_sizes.html -->
+        <module name="LineLength">
+            <property name="max" value="120"/>
+            <property name="ignorePattern" value="(^ *\** *)|(^import )"/>
+        </module>
+        <!--        <module name="MethodLength"/>-->
+        <!--        <module name="ParameterNumber"/>-->
+
+        <module name="NonEmptyAtclauseDescription"/>
+
+        <!-- Checks for Naming Conventions.                  -->
+        <!-- See http://checkstyle.sf.net/config_naming.html -->
+        <module name="ConstantName"/>
+        <module name="LocalFinalVariableName"/>
+        <module name="LocalVariableName"/>
+        <module name="MemberName"/>
+        <module name="MethodName"/>
+        <module name="PackageName"/>
+        <module name="ParameterName"/>
+        <module name="StaticVariableName"/>
+        <module name="TypeName"/>
+
+        <!-- Checks for imports                              -->
+        <!-- See http://checkstyle.sf.net/config_import.html -->
+        <module name="AvoidStarImport"/>
+        <module name="IllegalImport"/> <!-- defaults to sun.* packages -->
+        <module name="RedundantImport"/>
+        <module name="UnusedImports"/>
+
+        <!-- Modifier Checks                                    -->
+        <!-- See http://checkstyle.sf.net/config_modifiers.html -->
+        <module name="ModifierOrder"/>
+        <module name="RedundantModifier"/>
+
+        <!-- Checks for blocks. You know, those {}'s         -->
+        <!-- See http://checkstyle.sf.net/config_blocks.html -->
+        <module name="EmptyBlock"/>
+        <module name="LeftCurly"/>
+        <module name="NeedBraces"/>
+        <module name="RightCurly"/>
+
+        <!-- Checks for whitespace -->
+        <module name="MethodParamPad"/>
+
+        <!-- Checks for common coding problems -->
+        <module name="HiddenField">
+            <property name="tokens" value="VARIABLE_DEF"/>
+        </module>
+
+        <!-- Checks for class design -->
+        <!-- See http://checkstyle.sf.net/config_design.html -->
+        <module name="FinalClass"/>
+        <module name="VisibilityModifier"/>
+
+        <!-- Miscellaneous other checks -->
+        <module name="ArrayTypeStyle"/>
+        <module name="UpperEll"/>
+        <module name="FinalParameters"/>
+        <module name="FinalLocalVariable"/>
+        <module name="CommentsIndentation"/>
+        <module name="WhitespaceAround"/>
+        <module name="TodoComment">
+            <property name="severity" value="warning"/>
+            <property name="format" value="(TODO)|(FIXME)"/>
+        </module>
+
+        <module name="EqualsAvoidNullCheck"/>
+    </module>
+</module>
